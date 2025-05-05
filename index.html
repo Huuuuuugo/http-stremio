@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Browser</title>
+    <script>
+        const imdbIds = [
+            { id: 'tt0206512', title: 'Bob Esponja', type: 'series' },
+            { id: 'tt3121722', title: 'Patrulha Canina', type: 'series' },
+            { id: 'tt7678620', title: 'Bluey', type: 'series' },
+            { id: 'tt0338580', title: 'Baby Looney Tunes', type: 'series' },
+            { id: 'tt1865718', title: 'Gravity Falls: Um Verão de Mistérios', type: 'series' },
+            { id: 'tt1305826', title: 'Hora de Aventura', type: 'series' },
+            { id: 'tt1710308', title: 'Apenas um Show', type: 'series' },
+            { id: 'tt1942683', title: 'O Incrível Mundo de Gumball', type: 'series' },
+            { id: 'tt1140100', title: 'Chowder', type: 'series' },
+            { id: 'tt0780438', title: 'As Aventuras de Tom e Jerry', type: 'series' },
+            { id: 'tt6574360', title: 'Irmão do Jorel', type: 'series' },
+        ];
+    </script>
+    <style>
+        :root {
+            --bg-color: #0a1128;
+            --accent-color: #3a86ff;
+            --text-color: #ffffff;
+            --card-width: 180px;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(var(--card-width), 1fr));
+            gap: 25px;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .media-card {
+            position: relative;
+            width: var(--card-width);
+            height: calc(var(--card-width) * 1.5);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .media-card:hover {
+            transform: translateY(-10px) scale(1.03);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .media-card a {
+            display: block;
+            width: 100%;
+            height: 100%;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .media-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .media-card:hover .media-thumbnail {
+            transform: scale(1.05);
+        }
+
+        .media-title {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            margin: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+            font-size: 14px;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 18px;
+            color: var(--accent-color);
+        }
+
+        .error {
+            color: #ff6b6b;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .media-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .media-card {
+                width: 150px;
+                height: calc(150px * 1.5);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Media Collection</h1>
+    </div>
+
+    <div id="media-container" class="media-grid"></div>
+
+    <script>
+        // DOM elements
+        const mediaContainer = document.getElementById('media-container');
+
+        // Function to fetch and display media
+        async function displayMedia(ids) {
+            mediaContainer.innerHTML = '<div class="loading">Loading media...</div>';
+
+            try {
+                let html = '';
+
+                // Create a card for each IMDb ID
+                ids.forEach(imdb => {
+                    const thumbnailUrl = `https://images.metahub.space/poster/small/${imdb.id}/img`;
+
+                    html += `
+                        <div class="media-card">
+                            <a href="/view/${imdb.type}/?imdb=${imdb.id}" data-imdb="${imdb.id}">
+                                <img src="${thumbnailUrl}" alt="Media poster" class="media-thumbnail" onerror="this.src='https://via.placeholder.com/180x270/1a2a4a/3a86ff?text=Poster+Not+Found'">
+                                <h3 class="media-title">${imdb.title}</h3>
+                            </a>
+                        </div>
+                    `;
+                });
+
+                mediaContainer.innerHTML = html;
+
+                // If you want to fetch actual titles, you could use this (commented out for performance):
+                // await fetchTitles(ids);
+
+            } catch (error) {
+                mediaContainer.innerHTML = `<div class="error">Error loading media: ${error.message}</div>`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Optional: Function to fetch actual titles from an API
+        async function fetchTitles(ids) {
+            const cards = document.querySelectorAll('.media-card a');
+
+            // This would require an actual API endpoint that accepts IMDb IDs
+            // For demonstration, we'll just simulate it
+            cards.forEach(card => {
+                const id = card.dataset.imdb;
+                // In a real implementation, you would fetch the title here
+                // For now, we'll just show the ID as the title
+                card.querySelector('.media-title').textContent = `IMDb: ${id}`;
+            });
+        }
+
+        // Initialize
+        displayMedia(imdbIds);
+    </script>
+</body>
+
+</html>

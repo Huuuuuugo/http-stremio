@@ -1,0 +1,263 @@
+<head>
+    <script>
+        function getQueryParam(param) {
+            const query = window.location.search.substring(1);
+            const vars = query.split('&');
+
+            for (const pair of vars) {
+                const [key, value] = pair.split('=');
+                if (decodeURIComponent(key) === param) {
+                    return decodeURIComponent(value);
+                }
+            }
+            return null;
+        }
+        const imdb = getQueryParam('imdb')
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a1128;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .episode-list {
+            display: flex;
+            overflow-x: auto;
+            margin-inline: 2rem;
+            gap: 2rem;
+            height: 100vh;
+            align-items: center;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            /* Hide scrollbar for cleaner look */
+        }
+
+        /* Hide scrollbar for WebKit browsers */
+        .episode-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .episode {
+            position: relative;
+            min-width: 180px;
+            width: 32rem;
+            height: 18rem;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            scroll-snap-align: start;
+            flex-shrink: 0;
+        }
+
+        .episode:hover {
+            transform: scale(1.08);
+            z-index: 10;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .episode img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: all 0.4s ease;
+        }
+
+        .episode:hover img {
+            transform: scale(1.05);
+        }
+
+        .episode h2 {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: 0;
+            padding: 15px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        .episode a {
+            text-decoration: none;
+            color: white;
+            display: block;
+            height: 100%;
+        }
+
+        /* Season/episode badge - bottom left */
+        .episode::after {
+            content: "S" attr(data-season) " - E" attr(data-episode);
+            position: absolute;
+            bottom: 50px;
+            left: 15px;
+            background: rgba(58, 134, 255, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 2;
+        }
+
+        /* Fallback for missing thumbnails */
+        .episode .thumbnail-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a2a4a, #0a1128);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3a86ff;
+            font-size: 50px;
+        }
+
+        /* Series title at top */
+        .series-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 30px;
+            background: linear-gradient(to bottom, rgba(10, 17, 40, 0.9), transparent);
+            z-index: 100;
+        }
+
+        .series-title {
+            margin: 0;
+            font-size: 4rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+</head>
+
+<main>
+    <div class="series-header">
+        <h1 class="series-title">Series Episodes</h1>
+    </div>
+
+    <div class="episode-list"></div>
+
+    <script>
+        // Add this to your existing script
+        function setBackgroundImage(imageUrl) {
+            // Create a new div for the background
+            const bgDiv = document.createElement('div');
+            bgDiv.id = 'background-image';
+            document.body.insertBefore(bgDiv, document.body.firstChild);
+
+            // Apply styling
+            Object.assign(bgDiv.style, {
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                backgroundImage: `url('${imageUrl}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                zIndex: '-1',
+                opacity: '0',
+                transition: 'opacity 1s ease-in-out'
+            });
+
+            // Fade in the background
+            setTimeout(() => {
+                bgDiv.style.opacity = '0.3'; // Adjust opacity as needed
+            }, 100);
+
+            // Add overlay for better text readability
+            const overlay = document.createElement('div');
+            overlay.id = 'background-overlay';
+            bgDiv.appendChild(overlay);
+
+            Object.assign(overlay.style, {
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(to bottom, rgba(10, 17, 40, 0.8) 0%, rgba(10, 17, 40, 0.6) 100%)',
+                zIndex: '1'
+            });
+        }
+
+    </script>
+
+    <script>
+        fetch(`https://v3-cinemeta.strem.io/meta/series/${imdb}.json`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const episodeList = document.querySelector('.episode-list');
+
+                if (data.meta.name) {
+                    document.querySelector('.series-title').textContent = data.meta.name;
+                }
+
+                if (data.meta.background) {
+                    setBackgroundImage(data.meta.background)
+                }
+
+                if (data.meta.videos) {
+                    data.meta.videos.forEach(video => {
+                        if (video.season == 0) {
+                            return
+                        }
+                        const episode = document.createElement('div');
+                        episode.className = 'episode';
+                        episode.setAttribute('data-season', video.season || 1);
+                        episode.setAttribute('data-episode', video.number || 1);
+
+                        const link = document.createElement('a');
+                        link.href = `/stream/series/redecanais/${imdb}:${video.season || 1}:${video.number || 1}.json`;
+                        link.target = '_blank'
+
+                        if (video.thumbnail) {
+                            const thumbnail = document.createElement('img');
+                            thumbnail.src = video.thumbnail;
+                            thumbnail.alt = video.name || '';
+                            link.appendChild(thumbnail);
+                        } else {
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'thumbnail-placeholder';
+                            placeholder.innerHTML = '🎬';
+                            link.appendChild(placeholder);
+                        }
+
+                        const heading = document.createElement('h2');
+                        heading.textContent = video.name || 'Untitled Episode';
+                        link.appendChild(heading);
+
+                        episode.appendChild(link);
+                        episodeList.appendChild(episode);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                const episodeList = document.querySelector('.episode-list');
+                episodeList.innerHTML = `
+                <div style="color: #fff; padding: 40px; text-align: center; width: 100%;">
+                    <h2>Failed to load episodes</h2>
+                    <p>${error.message}</p>
+                </div>
+            `;
+            });
+    </script>
+</main>

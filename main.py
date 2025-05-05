@@ -1,4 +1,5 @@
 from urllib.parse import urlparse, urlencode
+from pathlib import Path
 import asyncio
 import ast
 import re
@@ -6,7 +7,7 @@ import re
 import aiohttp
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse, JSONResponse, Response
+from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse, Response, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import HTTPException
 
@@ -208,6 +209,39 @@ async def read_root(request: Request, url: str, headers: str | None = None):
             headers=response_headers,
             status_code=response.status,
         )
+
+
+@app.get("/")
+async def index():
+    html_path = Path("index.html")
+    return HTMLResponse(content=html_path.read_text(encoding="utf8"), status_code=200)
+
+
+@app.get("/view/series/")
+async def view_series(request: Request):
+    html_path = Path("series.html")
+    return HTMLResponse(content=html_path.read_text(encoding="utf8"), status_code=200)
+
+
+@app.get("/view/movie/")
+async def view_movie(request: Request):
+    html_path = Path("series.html")
+    return HTMLResponse(content=html_path.read_text(encoding="utf8"), status_code=200)
+
+
+@app.get("/stream/series/redecanais/{id}:{season}:{episode}.json")
+async def redecanais_stream(request: Request):
+    # mount proxy url with the same url used to acces the server
+    proxy_url = f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/proxy/"
+
+    # get variables
+    id = request.path_params.get("id")
+    season = int(request.path_params.get("season"))
+    episode = int(request.path_params.get("episode"))
+
+    # run scraper
+    results = await redecanais.series_stream(id, season, episode, proxy_url)
+    return RedirectResponse(results[0]["url"])
 
 
 if __name__ == "__main__":
