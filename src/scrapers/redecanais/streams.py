@@ -1,13 +1,13 @@
 # functions to get stremio formated streams for movies and series
 
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from src.utils.stremio import StremioStream, StremioStreamManager
 from .main import get_movie_pages, get_series_pages
-from .sources import player_stream
+from .sources import player_stream, REDECANAIS_URL
 
 ALLOWED_HOSTS = [
-    "redecanais.gs",
+    urlparse(REDECANAIS_URL).hostname,
 ]
 
 ALLOWED_REGEXS = [

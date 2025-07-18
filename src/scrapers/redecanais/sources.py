@@ -10,7 +10,7 @@ from src.utils.stremio import StremioStream
 from .decoders import decode_from_text, decode_videojs
 from .exceptions import *
 
-REDECANAIS_URL = "https://redecanais.gs/"
+REDECANAIS_URL = "https://redecanais.gd/"
 
 
 class PlayerStream:
