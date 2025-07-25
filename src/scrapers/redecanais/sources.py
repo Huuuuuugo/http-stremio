@@ -20,7 +20,7 @@ class PlayerStream:
         print("get_video_player_url")
         # get video page
         if cache_url:
-            query = urlencode({"url": video_page_url})
+            query = urlencode({"url": video_page_url, "expires": "4h"})
             video_page_url = f"{cache_url}?{query}"
 
         async with aiohttp.ClientSession() as session:
@@ -53,7 +53,7 @@ class PlayerStream:
     async def get_videosjs_url(cls, video_player_url: str, cache_url: None | str = None) -> str:
         print("get_videojs_url")
         if cache_url:
-            query = urlencode({"url": video_player_url})
+            query = urlencode({"url": video_player_url, "expires": "4h"})
             video_player_url = f"{cache_url}?{query}"
 
         async with aiohttp.ClientSession() as session:
@@ -93,7 +93,7 @@ class PlayerStream:
         }
 
         if cache_url:
-            query = urlencode({"url": videojs_url, "headers": videojs_headers})
+            query = urlencode({"url": videojs_url, "headers": videojs_headers, "expires": "4h"})
             videojs_url = f"{cache_url}?{query}"
 
         async with aiohttp.ClientSession() as session:
