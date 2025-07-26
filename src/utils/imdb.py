@@ -1,3 +1,4 @@
+from __future__ import annotations
 from urllib.parse import urlencode
 import asyncio
 import typing
@@ -10,15 +11,55 @@ from .exceptions import *
 
 
 class IMDB:
-    def __init__(self, title, year):
+    def __init__(self, id: str, title: str, year: int, html: BeautifulSoup | None = None, cache_url: str | None = None):
+        self.id = id
         self.title = title
         self.year = year
+        self._html = html
+        self._cache_url = cache_url
 
     def __str__(self):
         return f"<title: {self.title} | year: {self.year}>"
 
+    async def related_media(self) -> list[IMDB]:
+        related_media = self._html.find("section", {"data-testid": "MoreLikeThis"})
+        related_media = related_media.find("div", {"data-testid": "shoveler"})
+        related_media = related_media.find("div", {"data-testid": "shoveler-items-container"})
+
+        tasks = []
+        for item in related_media.find_all("div", {"class": "ipc-poster-card"}):
+            media_href = item.find("div", {"class": "ipc-poster"}).find("a").get("href")
+            media_id = re.findall(r"(tt\d+)", media_href)[0]
+            tasks.append(IMDB.get(media_id, "pt", self._cache_url))
+
+        return await asyncio.gather(*tasks)
+
     @classmethod
-    async def get(cls, code: str, lang: typing.Literal["en", "fr", "de", "es", "pt", "ja", "zh"] = "en", cache_url: None | str = None):
+    async def search(cls, term: str, cache_url: str | None = None) -> list[IMDB]:
+        url = f"https://v3.sg.media-imdb.com/suggestion/x/{term}.json?includeVideos=1"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as res:
+                results = await res.json()
+                results = results["d"]
+
+        async def imdb_ignore_errors(code: str):
+            try:
+                return await IMDB.get(code, "pt", cache_url)
+            except:
+                pass
+
+        tasks = []
+        for result in results:
+            id = result["id"]
+            if re.match(r"tt\d+", id):
+                tasks.append(imdb_ignore_errors(id))
+
+        results_list = await asyncio.gather(*tasks)
+        results_list = [result for result in results_list if result is not None]
+        return results_list
+
+    @classmethod
+    async def get(cls, code: str, lang: typing.Literal["en", "fr", "de", "es", "pt", "ja", "zh"] = "en", cache_url: None | str = None) -> IMDB:
         # list of languages accepted by imdb
         accept_languages = {
             "en": "en-US,en;q=0.9",  # US English
@@ -77,7 +118,7 @@ class IMDB:
             msg = "Error while parsing IMDb page. Could not find 'year'"
             raise IMDBParsingError(msg)
 
-        return IMDB(title, year)
+        return IMDB(code, title, year, imdb_html)
 
 
 async def main():
