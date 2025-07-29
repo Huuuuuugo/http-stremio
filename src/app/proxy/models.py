@@ -29,17 +29,15 @@ class CacheMeta(Base):
     relative_expires_str: Mapped[str] = mapped_column(types.String, nullable=True)
 
     def __repr__(self):
-        return f"<CacheMeta(id={self.id}, hash={self.hash}, request_url={self.request_url}, created_at={self.created_at})>"
+        return f"<CacheMeta(id={self.id}, request_url={self.request_url}, created_at={self.created_at})>"
 
     def to_json(self):
         return {
             "id": self.id,
             "is_downloaded": self.is_downloaded,
             "cache_size": self.cache_size,
-            # "request_method": self.request_method,
             "request_url": self.request_url,
             "request_headers": self.request_headers,
-            # "request_body": self.request_body,
             "response_headers": self.response_headers,
             "response_status": self.response_status,
             "created_at": self.created_at.isoformat() if self.created_at else None,

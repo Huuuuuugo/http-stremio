@@ -27,6 +27,34 @@ class CacheMetaServiceExceptions:
         pass
 
 
+class DynamicLockManager:
+    def __init__(self, max_locks: int = 255):
+        self._max_locks = max_locks
+        self._locks = {}
+        self._manager_lock = asyncio.Lock()
+
+    async def get_lock(self, key: str):
+        async with self._manager_lock:
+            # create new lock if doesn't exist already
+            if key not in self._locks.keys():
+                # clear locks after a certain threshold
+                if len(self._locks) > self._max_locks:
+                    for key in self._locks:
+                        if not self._locks[key].locked():
+                            del self._locks[key]
+
+                # create and save lock
+                lock = asyncio.Lock()
+                self._locks[key] = lock
+            else:
+                lock = self._locks[key]
+
+        return lock
+
+
+lock_manager = DynamicLockManager()
+
+
 # TODO: figure out a way to deal with cached responses with status like 429
 # TODO: add some docstrings explaining the logic on each method
 class CacheMetaService:
@@ -46,32 +74,35 @@ class CacheMetaService:
         hash.update(f"{request_url} {request_headers}".encode())
         hash = hash.hexdigest()
 
-        # create a new CacheMeta instance with basic values
-        cache_meta = CacheMeta(
-            id=hash,
-            is_downloaded=None,
-            request_url=request_url,
-            request_headers=str(request_headers),
-            created_at=datetime.now(),
-            last_used_at=datetime.now(),
-        )
+        cache_lock = await lock_manager.get_lock(hash)
 
-        # create new record on the database
-        try:
-            self.db.add(cache_meta)
-            await self.db.commit()
-        except IntegrityError:
-            msg = f"A record for '{request_url}' and '{request_headers}' already exists!"
-            raise CacheMetaServiceExceptions.CacheAlreadyExistsError(msg)
+        async with cache_lock:
+            # create a new CacheMeta instance with basic values
+            cache_meta = CacheMeta(
+                id=hash,
+                is_downloaded=None,
+                request_url=request_url,
+                request_headers=str(request_headers),
+                created_at=datetime.now(),
+                last_used_at=datetime.now(),
+            )
 
-        try:
-            # run the update method to fill the remaining values
-            return await self.update(hash, relative_expires_str)
-        except Exception as e:
-            # delete the uncompleted record if something fails
-            await self.delete(hash)
+            # create new record on the database
+            try:
+                self.db.add(cache_meta)
+                await self.db.commit()
+            except IntegrityError:
+                msg = f"A record for '{request_url}' and '{request_headers}' already exists!"
+                raise CacheMetaServiceExceptions.CacheAlreadyExistsError(msg)
 
-            raise e
+            try:
+                # run the update method to fill the remaining values
+                return await self.update(hash, relative_expires_str)
+            except Exception as e:
+                # delete the uncompleted record if something fails
+                await self.delete(hash)
+
+                raise e
 
     async def update(self, hash: str, relative_expires_str: str | None = None) -> CacheMeta:
         # get CacheMeta instance
@@ -131,48 +162,55 @@ class CacheMetaService:
 
             raise e
 
-    # TODO FIXME: there might be a race condition on the checks if the cache is pending or has expired
     async def read(self, hash: str, relative_expires_str: str | None = None) -> CacheMeta:
-        # get target record
-        cache_meta = await self.db.get(CacheMeta, hash)
-        if cache_meta is None:
-            msg = f"Record with hash '{hash}' could not be found."
-            raise CacheMetaServiceExceptions.CacheNotFoundError(msg)
+        cache_lock = await lock_manager.get_lock(hash)
 
-        # check if it's pending to be cached
-        if cache_meta.is_downloaded is None:
-            cache_meta = await self.update(cache_meta.id, relative_expires_str)
+        async with cache_lock:
+            # get target record
+            cache_meta = await self.db.get(CacheMeta, hash)
+            if cache_meta is None:
+                msg = f"Record with hash '{hash}' could not be found."
+                raise CacheMetaServiceExceptions.CacheNotFoundError(msg)
 
-        # check if the cached file has expired
-        if datetime.now() > cache_meta.expires_at:
-            cache_meta = await self.update(cache_meta.id, relative_expires_str)
+            # check if it's pending to be cached
+            if cache_meta.is_downloaded is None:
+                cache_meta = await self.update(cache_meta.id, relative_expires_str)
 
-        # check if it's already being cached
-        # and wait for the download to finish
-        while cache_meta.is_downloaded is False:
+            # check if the cached file has expired
+            if datetime.now() > cache_meta.expires_at:
+                cache_meta = await self.update(cache_meta.id, relative_expires_str)
+
+            # check if it's already being cached
+            # and wait for the download to finish
+            while cache_meta.is_downloaded is False:
+                await self.db.refresh(cache_meta)
+                await asyncio.sleep(0.05)
+
+            # update last_used_at
+            cache_meta.last_used_at = datetime.now()
+            await self.db.commit()
             await self.db.refresh(cache_meta)
-            await asyncio.sleep(0.05)
-
-        # update last_used_at
-        cache_meta.last_used_at = datetime.now()
-        await self.db.commit()
-        await self.db.refresh(cache_meta)
 
         return cache_meta
 
     async def delete(self, hash: str):
-        # delete record from the database
         async with delete_lock:
-            cache_meta = await self.db.get(CacheMeta, hash)
-            await self.db.delete(cache_meta)
-            await self.db.commit()
+            cache_lock = await lock_manager.get_lock(hash)
 
-        # delete cache file
-        cache_path = os.path.join(CACHE_DIR, hash)
-        if os.path.exists(cache_path):
-            os.remove(cache_path)
+            # delete record from the database
+            async with cache_lock:
+                cache_meta = await self.db.get(CacheMeta, hash)
+                if cache_meta is not None:
+                    # delete cache meta
+                    await self.db.delete(cache_meta)
+                    await self.db.commit()
 
-    async def read_from_url(self, request_url: str, request_headers: dict | None = None, relative_expires_str: str | None = None):
+                    # delete cache file
+                    cache_path = os.path.join(CACHE_DIR, hash)
+                    if os.path.exists(cache_path):
+                        os.remove(cache_path)
+
+    async def create_or_read_from_url(self, request_url: str, request_headers: dict | None = None, relative_expires_str: str | None = None):
         if request_headers is None:
             request_headers = {}
 
@@ -181,5 +219,17 @@ class CacheMetaService:
         hash.update(f"{request_url} {request_headers}".encode())
         hash = hash.hexdigest()
 
+        local_cache_lock = await lock_manager.get_lock(f"{hash}.create_or_read_from_url")
+        async with local_cache_lock:
+            try:
+                cache_meta = await self.read(hash, relative_expires_str)
+
+            # create the cache metadata records if it doesn't exist already
+            except CacheMetaServiceExceptions.CacheNotFoundError:
+                from .tasks import delete_exceeding_caches
+
+                asyncio.create_task(delete_exceeding_caches())  # run the delete task without blocking the method
+                cache_meta = await self.create(request_url, request_headers, relative_expires_str)
+
         # run the read method
-        return await self.read(hash, relative_expires_str)
+        return cache_meta

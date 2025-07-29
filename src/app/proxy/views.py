@@ -61,16 +61,9 @@ async def cache_proxy(url: str, headers: dict, expires: str | None, db: AsyncSes
     # check if the url host is on the allow list
     check_allowed_urls(url)
 
-    # get the cache metadatada record
+    # read or create the cache metadata record
     cache_meta_service = CacheMetaService(db)
-    # async with cache_proxy_lock:
-    try:
-        cache_meta = await cache_meta_service.read_from_url(url, headers, expires)
-
-    # create the cache metadata records if it doesn't exist already
-    except CacheMetaServiceExceptions.CacheNotFoundError:
-        asyncio.create_task(delete_exceeding_caches())  # run the delete task without blocking the view
-        cache_meta = await cache_meta_service.create(url, headers, expires)
+    cache_meta = await cache_meta_service.create_or_read_from_url(url, headers, expires)
 
     # get the path to the cached file
     cache_path = os.path.join(CACHE_DIR, cache_meta.id)
