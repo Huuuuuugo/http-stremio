@@ -17,9 +17,9 @@ class AudioData(typing.TypedDict):
     servers: str
 
 
-async def get_movie_audios(imdb: str) -> list[AudioData]:
+async def get_movie_audios(imdb_id: str) -> list[AudioData]:
     async with aiohttp.ClientSession() as session:
-        movie_page_url = urljoin(EMBED_URL, f"/filme/{imdb}")
+        movie_page_url = urljoin(EMBED_URL, f"/filme/{imdb_id}")
         async with session.get(movie_page_url) as movie_page:
             audio_data_matches = re.findall(r"let data = (?:\'|\")(.+)(?:\'|\")", await movie_page.text())
             if audio_data_matches:
@@ -30,10 +30,10 @@ async def get_movie_audios(imdb: str) -> list[AudioData]:
                 raise MovieHTMLParsingError(msg)
 
 
-async def get_series_audios(imdb: str, season: int, episode: int) -> list[AudioData]:
+async def get_series_audios(imdb_id: str, season: int, episode: int) -> list[AudioData]:
     async with aiohttp.ClientSession() as session:
         # get series page and url to season info json
-        series_page_url = urljoin(EMBED_URL, f"/serie/{imdb}")
+        series_page_url = urljoin(EMBED_URL, f"/serie/{imdb_id}")
         async with session.get(series_page_url) as series_page:
             seasons_url_matches = re.findall(r"var cachedSeasons = (?:\'|\")(.+)(?:\'|\")", await series_page.text())
             if seasons_url_matches:

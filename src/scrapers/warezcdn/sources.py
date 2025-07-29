@@ -13,7 +13,7 @@ class WarezcdnStream:
     @classmethod
     async def get_video_url(
         cls,
-        imdb: str,
+        imdb_id: str,
         type: typing.Literal["filme", "serie"],
         audio_data: AudioData,
     ) -> str:
@@ -24,7 +24,7 @@ class WarezcdnStream:
             server = "warezcdn"
 
             # relevant urls
-            media_page_url = urljoin(EMBED_URL, f"{type}/{imdb}")
+            media_page_url = urljoin(EMBED_URL, f"{type}/{imdb_id}")
             embed_video_url = urljoin(EMBED_URL, f"getEmbed.php?id={id}&sv={server}&lang={lang}")
             play_url = urljoin(EMBED_URL, f"/getPlay.php?id={id}&sv={server}")
 
@@ -79,11 +79,11 @@ class WarezcdnStream:
     @classmethod
     async def get(
         cls,
-        imdb: str,
+        imdb_id: str,
         type: typing.Literal["filme", "serie"],
         audio_data: AudioData,
     ) -> StremioStream:
-        video_url = await cls.get_video_url(imdb, type, audio_data)
+        video_url = await cls.get_video_url(imdb_id, type, audio_data)
         stream_info = await cls.get_stream(video_url)
 
         name = "Warezcdn"
@@ -92,8 +92,8 @@ class WarezcdnStream:
 
 
 async def warezcdn_stream(
-    imdb: str,
+    imdb_id: str,
     type: typing.Literal["filme", "serie"],
     audio_data: AudioData,
 ) -> StremioStream:
-    return await WarezcdnStream.get(imdb, type, audio_data)
+    return await WarezcdnStream.get(imdb_id, type, audio_data)

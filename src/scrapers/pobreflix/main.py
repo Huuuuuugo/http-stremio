@@ -5,7 +5,7 @@ from urllib.parse import urljoin, urlencode
 from bs4 import BeautifulSoup
 import aiohttp
 
-from src.utils.imdb import IMDB
+from src.utils import imdb
 from .exceptions import *
 
 
@@ -59,9 +59,9 @@ async def search(search_term: str) -> list[PobreflixResult]:
     return result_list
 
 
-async def get_media_pages(imdb: str, cache_url: None | str = None) -> dict:
+async def get_media_pages(imdb_id: str, cache_url: None | str = None) -> dict:
     # get media info on imdb
-    info = await IMDB.get(imdb, "pt", cache_url)
+    info = await imdb.get_media(imdb_id, "pt", cache_url)
 
     # search for media with matching title and release year
     search_results = await search(info.title)
@@ -79,7 +79,7 @@ async def get_media_pages(imdb: str, cache_url: None | str = None) -> dict:
         return pages_dict
 
     else:
-        msg = f"No media found for code '{imdb}'"
+        msg = f"No media found for code '{imdb_id}'"
         raise MediaNotFound(msg)
 
 

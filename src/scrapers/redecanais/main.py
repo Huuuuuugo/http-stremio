@@ -8,7 +8,7 @@ import os
 from bs4 import BeautifulSoup
 import aiohttp
 
-from src.utils.imdb import IMDB
+from src.utils import imdb
 from .sources import REDECANAIS_URL
 from .utils import to_kebab_case
 from .decoders import decode_from_response
@@ -135,10 +135,10 @@ async def find_episode_pages(series_page_url: str, season: int, episode: int, ca
 
 
 # TODO: update it to work with pages that don't reset the episode number on each season
-async def get_series_pages(imdb: str, season: int, episode: int, cache_url: None | str = None):
+async def get_series_pages(imdb_id: str, season: int, episode: int, cache_url: None | str = None):
     # check if the episode page url is inside series.json
     try:
-        episode_pages = SERIES_JSON[imdb]["seasons"][str(season)]["episodes"][str(episode)]
+        episode_pages = SERIES_JSON[imdb_id]["seasons"][str(season)]["episodes"][str(episode)]
         print(episode_pages)
         for key in episode_pages:
             url = episode_pages[key]
@@ -148,11 +148,11 @@ async def get_series_pages(imdb: str, season: int, episode: int, cache_url: None
     except KeyError:
         # check if te series page url is inside series.json
         try:
-            page_url = SERIES_JSON[imdb]["page_url"]
+            page_url = SERIES_JSON[imdb_id]["page_url"]
 
         except KeyError:
             print("get_series_pages")
-            info = await IMDB.get(imdb, "pt", cache_url)
+            info = await imdb.get_media(imdb_id, "pt", cache_url)
             title = to_kebab_case(info.title)
 
             # format video page url using the redecanais pattern
@@ -164,14 +164,14 @@ async def get_series_pages(imdb: str, season: int, episode: int, cache_url: None
     return episode_pages
 
 
-async def get_movie_pages(imdb: str, cache_url: None | str) -> dict:
+async def get_movie_pages(imdb_id: str, cache_url: None | str) -> dict:
     try:
-        media_pages = MOVIES_JSON[imdb]
+        media_pages = MOVIES_JSON[imdb_id]
         media_pages = {key: urljoin(REDECANAIS_URL, media_pages[key]) for key in media_pages.keys()}
 
     except KeyError:
         # get information about the target media
-        info = await IMDB.get(imdb, "pt", cache_url)
+        info = await imdb.get_media(imdb_id, "pt", cache_url)
         title = to_kebab_case(info.title)
         year = str(info.year)
         first_char = title[0] if title[0].isalpha() else "-"
@@ -189,6 +189,6 @@ async def get_movie_pages(imdb: str, cache_url: None | str) -> dict:
                 else:
                     media_pages.update({"dub": urljoin(REDECANAIS_URL, url)})
 
-                MOVIE_LIST.update({imdb: media_pages})
+                MOVIE_LIST.update({imdb_id: media_pages})
 
     return media_pages

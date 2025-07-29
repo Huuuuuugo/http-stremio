@@ -14,16 +14,16 @@ ALLOWED_REGEXS = [
 ]
 
 
-async def movie_streams(imdb: str, proxy_url: str | None = None):
+async def movie_streams(imdb_id: str, proxy_url: str | None = None):
     try:
-        audio_list = await get_movie_audios(imdb)
+        audio_list = await get_movie_audios(imdb_id)
         tasks = []
         for audio in audio_list:
             for server in audio["servers"].split(","):
                 if server == "mixdrop":
                     continue
                 if server == "warezcdn":
-                    tasks.append(warezcdn_stream(imdb, "filme", audio))
+                    tasks.append(warezcdn_stream(imdb_id, "filme", audio))
 
         stream_info_list: list[StremioStream] = await asyncio.gather(*tasks)
 
@@ -44,16 +44,16 @@ async def movie_streams(imdb: str, proxy_url: str | None = None):
         return []
 
 
-async def series_stream(imdb: str, season: int, episode: int, proxy_url: str | None = None):
+async def series_stream(imdb_id: str, season: int, episode: int, proxy_url: str | None = None):
     try:
-        audio_list = await get_series_audios(imdb, season, episode)
+        audio_list = await get_series_audios(imdb_id, season, episode)
         tasks = []
         for audio in audio_list:
             for server in audio["servers"].split(","):
                 if server == "mixdrop":
                     continue
                 if server == "warezcdn":
-                    tasks.append(warezcdn_stream(imdb, "filme", audio))
+                    tasks.append(warezcdn_stream(imdb_id, "filme", audio))
 
         stream_info_list: list[StremioStream] = await asyncio.gather(*tasks)
 
