@@ -38,10 +38,11 @@ class DynamicLockManager:
             # create new lock if doesn't exist already
             if key not in self._locks.keys():
                 # clear locks after a certain threshold
-                if len(self._locks) > self._max_locks:
-                    for key in self._locks:
+                if len(self._locks) >= self._max_locks:
+                    for key in self._locks.keys():
                         if not self._locks[key].locked():
                             del self._locks[key]
+                            break
 
                 # create and save lock
                 lock = asyncio.Lock()
