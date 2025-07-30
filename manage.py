@@ -4,10 +4,14 @@ import asyncio
 import uvicorn
 
 
-def runserver(protocol: str, address: str):
+def runserver(protocol: str, address: str, disable_cache: bool):
     from src.app.main import app
+    from src.app import config
 
     host, port = address.split(":")
+    if not disable_cache:
+        cache_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
+        config.CACHE_URL = f"{protocol}://{cache_host}:{port}/proxy/cache/"
 
     match protocol:
         case "http":
@@ -73,7 +77,13 @@ def main():
         "-a",
         type=str,
         default="0.0.0.0:6222",
-        help="The ip address and port where the server will run in the form of a string formatted as 'host:port'.",
+        help="A string formatted as 'host:port' containing the IP address and port where the server should run.",
+    )
+    runserver_parser.add_argument(
+        "--disable-cache",
+        "-dc",
+        action="store_true",
+        help="If present, the cache proxy will not be used internally.",
     )
 
     # arguments for clearing cached files
@@ -86,7 +96,7 @@ def main():
     args = parser.parse_args()
     match args.command:
         case "runserver":
-            runserver(args.protocol, args.address)
+            runserver(args.protocol, args.address, args.disable_cache)
 
         case "clearcache":
             asyncio.run(clearcache())

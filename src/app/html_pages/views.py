@@ -4,13 +4,23 @@ import os
 import aiohttp
 import aiofiles
 from jinja2 import Environment, FileSystemLoader
-from fastapi import Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
+from src.app import config
+from src.utils import imdb
 from src.scrapers import redecanais
-from . import constants
+from .constants import TEMPLATES_DIR, STATIC_DIR
 
-templates = Environment(loader=FileSystemLoader(constants.TEMPLATES_DIR))
+templates = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
+
+
+async def static(subfolder: str, file: str):
+    static_path = os.path.join(STATIC_DIR, subfolder, file)
+    if not os.path.exists(static_path):
+        raise HTTPException(404, "File not found")
+
+    return FileResponse(static_path)
 
 
 async def index():
@@ -104,14 +114,10 @@ async def series_info(id: str, season: int):
     return HTMLResponse(template.render(data))
 
 
-async def watch_movie(id: str, proxy_url: str, cache_url: str, user_agent: str):
+async def watch_movie(id: str, proxy_url: str):
     # get stream
-    streams = await redecanais.movie_streams(id, proxy_url=proxy_url, cache_url=cache_url)
+    streams = await redecanais.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL)
     stream = streams[0]["url"]
-
-    # return raw stream if on android 4.2.2
-    if "Android 4.2.2" in user_agent:
-        return RedirectResponse(stream)
 
     # render player template
     template = templates.get_template("player.html")
@@ -119,7 +125,7 @@ async def watch_movie(id: str, proxy_url: str, cache_url: str, user_agent: str):
     return HTMLResponse(template.render(data))
 
 
-async def watch_series(id: str, season: int, episode: int, proxy_url: str, cache_url: str, user_agent: str):
+async def watch_series(id: str, season: int, episode: int, proxy_url: str):
     async with aiohttp.ClientSession() as session:
         async with session.get(f"https://v3-cinemeta.strem.io/meta/series/{id}.json") as response:
             series_data = await response.json()
@@ -139,16 +145,12 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str, cache
             break
 
     # get stream
-    streams = await redecanais.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=cache_url)
+    streams = await redecanais.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL)
     try:
         stream = streams[0]["url"]
     except IndexError:
         print("apisode stream not found, redirecting to next episode...")
         return RedirectResponse(next_url)
-
-    # return raw stream if on android 4.2.2
-    if "Android 4.2.2" in user_agent:
-        return RedirectResponse(stream)
 
     # render player template
     template = templates.get_template("player.html")

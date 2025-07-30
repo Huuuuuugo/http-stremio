@@ -16,9 +16,8 @@ async def movie_stream_route(request: Request, id: str):
     hostname = request.url.hostname
     port = request.url.port
     proxy_url = f"{scheme}://{hostname}{f":{port}" if port else ""}/proxy/stream/"
-    cache_url = f"{scheme}://{hostname}{f":{port}" if port else ""}/proxy/cache/"
 
-    return await movie_stream(id, proxy_url, cache_url)
+    return await movie_stream(id, proxy_url)
 
 
 @router.get("/stream/series/{id}:{season}:{episode}.json")
@@ -28,6 +27,5 @@ async def series_stream_route(request: Request, id: str, season: int, episode: i
     hostname = request.url.hostname
     port = request.url.port
     proxy_url = f"{scheme}://{hostname}{f":{port}" if port else ""}/proxy/stream/"
-    cache_url = f"{scheme}://{hostname}{f":{port}" if port else ""}/proxy/cache/"
 
-    return await series_stream(id, season, episode, proxy_url, cache_url)
+    return await series_stream(id, season, episode, proxy_url)
