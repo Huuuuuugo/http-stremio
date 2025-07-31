@@ -5,13 +5,16 @@ import uvicorn
 
 
 def runserver(protocol: str, address: str, disable_cache: bool):
+    from urllib.parse import urljoin
+
     from src.app.main import app
     from src.app import config
 
     host, port = address.split(":")
+    server_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
+    config.LOCAL_ADDRESS = f"{protocol}://{server_host}:{port}/"
     if not disable_cache:
-        cache_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
-        config.CACHE_URL = f"{protocol}://{cache_host}:{port}/proxy/cache/"
+        config.CACHE_URL = urljoin(config.LOCAL_ADDRESS, "/proxy/cache/")
 
     match protocol:
         case "http":

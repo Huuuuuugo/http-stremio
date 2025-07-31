@@ -6,7 +6,7 @@ from src.app import config
 
 
 async def imdb_info(id: str, lang: str):
-    media = await imdb.get_media(id, lang, config.CACHE_URL)
+    media = await imdb.get_media(id, lang)
     info_dict = {
         "id": media.id,
         "title": media.title,
@@ -31,7 +31,7 @@ async def imdb_info(id: str, lang: str):
 
 
 async def related_media(id: str, lang: str):
-    media = await imdb.get_media(id, lang, config.CACHE_URL)
+    media = await imdb.get_media(id, lang)
     related = await media.get_related_media()
     related = [item.to_json() for item in related]
 

@@ -1,260 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'default.html' %}
+{% block title %}Página Inicial{% endblock title %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content Collection</title>
-    <style>
-        :root {
-            --bg-dark: #0f0f13;
-            --bg-darker: #0a0a0e;
-            --primary: #ff2e63;
-            --secondary: #08d9d6;
-            --text: #eaeaea;
-            --text-muted: #b8b8b8;
-            --card-bg: #1a1a24;
-            --card-hover: #242432;
-            --glass: rgba(15, 15, 19, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --section-spacing: 4rem;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        @supports (font-variation-settings: normal) {
-            * {
-                font-family: 'Inter var', -apple-system, BlinkMacSystemFont, sans-serif;
-            }
-        }
-
-        body {
-            /* background-color: var(--bg-dark); */
-            /* color: var(--text); */
-            background-color: #0f0f13;
-            color: #eaeaea;
-        }
-
-        a {
-            color: white;
-        }
-
-        .content-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .section-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            position: relative;
-            padding-left: 1rem;
-        }
-
-        .section-title::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            height: 70%;
-            width: 4px;
-            background: var(--primary);
-            border-radius: 2px;
-        }
-
-        .view-all {
-            color: var(--secondary);
-            font-weight: 500;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: opacity 0.2s ease;
-        }
-
-        .view-all:hover {
-            opacity: 0.8;
-        }
-
-        .view-all svg {
-            width: 16px;
-            height: 16px;
-            fill: currentColor;
-        }
-
-        .content-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: var(--section-spacing);
-        }
-
-        .content-card {
-            position: relative;
-            border-radius: 10px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            aspect-ratio: 2/3;
-        }
-
-        .content-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-        }
-
-        .content-card::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 50%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .content-card:hover::after {
-            opacity: 1;
-        }
-
-        .content-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .content-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 1rem;
-            z-index: 1;
-            transform: translateY(10px);
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-
-        .content-card:hover .content-info {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        .content-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-            margin-bottom: 0.25rem;
-            display: -webkit-box;
-            line-clamp: 2;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .content-type {
-            font-size: 0.75rem;
-            color: var(--secondary);
-            font-weight: 500;
-        }
-
-        @media (max-width: 1024px) {
-            .content-grid {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            }
-        }
-
-        @media (max-width: 768px) {
-            .content-container {
-                padding: 0 1.5rem;
-            }
-
-            .section-title {
-                font-size: 1.5rem;
-            }
-
-            .content-grid {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-                gap: 1rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .content-container {
-                padding: 0 1rem;
-            }
-
-            .content-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            }
-
-            .content-info {
-                padding: 0.75rem;
-            }
-
-            .content-name {
-                font-size: 0.85rem;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <div class="content-container">
-        <section class="series">
-            <div class="section-header">
-                <h2 class="section-title">Series Collection</h2>
-            </div>
-            <div class="content-grid">
-                {% for series in selected_series %}
-                <a href="/series/{{series.id}}">
-                    <div class="content-card">
-                        <img src="/proxy/cache/?url=https://live.metahub.space/poster/small/{{series.id}}/img"
-                            alt="{{series.name}}">
-                        <div class="content-info">
-                            <div class="content-type">TV SERIES</div>
-                            <div class="content-name">{{series.name}}</div>
-                        </div>
+{% block body %}
+<div>
+    <section>
+        <div>
+            <h2>Coleção de Séries</h2>
+        </div>
+        <div>
+            {% for series in selected_series %}
+            <a href="/series/{{series.id}}">
+                <div>
+                    <img src="/proxy/cache/?url={{series.poster}}" alt="{{series.title}}">
+                    <div>
+                        <div>SÉRIE</div>
+                        <div>{{series.title}}</div>
                     </div>
-                </a>
-                {% endfor %}
-            </div>
-        </section>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
 
-        <section class="movies">
-            <div class="section-header">
-                <h2 class="section-title">Movies Collection</h2>
-            </div>
-            <div class="content-grid">
-                {% for movie in selected_movies %}
-                <a href="/redirect/?url=/movie/{{movie.id}}" target="_blank">
-                    <div class="content-card">
-                        <img src="/proxy/cache/?url=https://live.metahub.space/poster/small/{{movie.id}}/img"
-                            alt="{{movie.name}}">
-                        <div class="content-info">
-                            <div class="content-type">MOVIE</div>
-                            <div class="content-name">{{movie.name}}</div>
-                        </div>
+    <section>
+        <div>
+            <h2>Coleção de Filmes</h2>
+        </div>
+        <div>
+            {% for movie in selected_movies %}
+            <a href="/movie/{{movie.id}}" target="_blank">
+                <div>
+                    <img src="/proxy/cache/?url={{movie.poster}}" alt="{{movie.title}}">
+                    <div>
+                        <div>FILME</div>
+                        <div>{{movie.title}}</div>
                     </div>
-                </a>
-                {% endfor %}
-            </div>
-        </section>
-    </div>
-</body>
-
-</html>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock body %}

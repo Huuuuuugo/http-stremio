@@ -1,3 +1,5 @@
+from urllib.parse import urljoin, urlencode
+import asyncio
 import json
 import os
 
@@ -27,11 +29,44 @@ async def index():
     async with aiofiles.open("./selected-media.json", "r", encoding="utf8") as f:
         selected_media = json.loads(await f.read())
 
-    data = {
-        "selected_movies": selected_media["movies"],
-        "selected_series": selected_media["series"],
-    }
+    async with aiohttp.ClientSession() as session:
+        # request info about each selected media
+        movie_tasks = []
+        for movie_id in selected_media["movies"]:
+            url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/?id={movie_id}")
+            if config.CACHE_URL:
+                query = urlencode({"url": url})
+                url = urljoin(config.CACHE_URL, f"?{query}")
+            movie_tasks.append(session.get(url))
 
+        series_tasks = []
+        for series_id in selected_media["series"]:
+            url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/?id={series_id}")
+            if config.CACHE_URL:
+                query = urlencode({"url": url})
+                url = urljoin(config.CACHE_URL, f"?{query}")
+            series_tasks.append(session.get(url))
+
+        tasks = [
+            asyncio.gather(*movie_tasks),
+            asyncio.gather(*series_tasks),
+        ]
+        movie_tasks, series_tasks = await asyncio.gather(*tasks)
+
+        # turn every response into a dict
+        movie_tasks = [task.json() for task in movie_tasks]
+        series_tasks = [task.json() for task in series_tasks]
+        tasks = [
+            asyncio.gather(*movie_tasks),
+            asyncio.gather(*series_tasks),
+        ]
+        selected_movies, selected_series = await asyncio.gather(*tasks)
+
+    # render template
+    data = {
+        "selected_movies": selected_movies,
+        "selected_series": selected_series,
+    }
     template = templates.get_template("index.html")
     return HTMLResponse(template.render(data))
 
@@ -43,73 +78,85 @@ async def redirect(url: str):
 
 
 async def movie_info(id: str):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://v3-cinemeta.strem.io/meta/movie/{id}.json") as response:
-            series_data = await response.json()
+    # mount url for getting the movie info
+    info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/?id={id}")
+    if config.CACHE_URL:
+        query = urlencode({"url": info_url})
+        info_url = urljoin(config.CACHE_URL, f"?{query}")
 
-    # get movie variables
-    name = series_data["meta"]["name"]
-    background = series_data["meta"]["background"]
-    poster = series_data["meta"]["poster"]
-    logo = series_data["meta"]["logo"]
+    # mount url for getting media related to the movie
+    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/related-media/?id={id}")
+    if config.CACHE_URL:
+        query = urlencode({"url": related_url})
+        related_url = urljoin(config.CACHE_URL, f"?{query}")
+
+    # make requests and format responses
+    async with aiohttp.ClientSession() as session:
+        # make requests
+        tasks = [
+            session.get(info_url),
+            session.get(related_url),
+        ]
+        info, related = await asyncio.gather(*tasks)
+
+        # turn results into dicts
+        tasks = [
+            info.json(),
+            related.json(),
+        ]
+        info, related = await asyncio.gather(*tasks)
 
     # render template
     template = templates.get_template("movie.html")
     data = {
-        "name": name,
-        "logo": logo,
-        "poster": poster,
-        "background": background,
-        "id": id,
+        "info": info,
+        "related_media": related,
     }
     return HTMLResponse(template.render(data))
 
 
 async def series_info(id: str, season: int):
+    # mount url for getting the series info
+    info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/?id={id}")
+    if config.CACHE_URL:
+        query = urlencode({"url": info_url})
+        info_url = urljoin(config.CACHE_URL, f"?{query}")
+
+    # mount url for getting media related to the movie
+    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/related-media/?id={id}")
+    if config.CACHE_URL:
+        query = urlencode({"url": related_url})
+        related_url = urljoin(config.CACHE_URL, f"?{query}")
+
+    # make requests and format responses
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://v3-cinemeta.strem.io/meta/series/{id}.json") as response:
-            series_data = await response.json()
+        # make requests
+        tasks = [
+            session.get(info_url),
+            session.get(related_url),
+        ]
+        info, related = await asyncio.gather(*tasks)
 
-    # create a dict for every season
-    seasons = {}
-    for video in series_data["meta"]["videos"]:
-        if video["season"] == 0:
-            continue
+        # turn results into dicts
+        tasks = [
+            info.json(),
+            related.json(),
+        ]
+        info, related = await asyncio.gather(*tasks)
 
-        episode = {}
-        if video["season"] == season:
-            episode = {
-                "number": video["number"],
-                "title": video["name"],
-                "image": video["thumbnail"],
-            }
-
-        try:
-            seasons[video["season"]]["episodes"].append(episode)
-
-        except KeyError:
-            seasons.update({video["season"]: {"number": video["season"], "episodes": []}})
-            seasons[video["season"]]["episodes"].append(episode)
-
-    # convert seasons dict to a list
-    seasons = [seasons[key] for key in seasons.keys()]
-
-    # get remaining series variables
-    name = series_data["meta"]["name"]
-    background = series_data["meta"]["background"]
-    poster = series_data["meta"]["poster"]
-    logo = series_data["meta"]["logo"]
+    # get total season count
+    season_count = 1
+    for episode in info["episodes"]:
+        if episode["season"] > season_count:
+            season_count = episode["season"]
 
     # render template
     template = templates.get_template("series.html")
     data = {
-        "seasons": seasons,
-        "curr_season": season,
-        "name": name,
-        "logo": logo,
-        "poster": poster,
-        "background": background,
-        "id": id,
+        "info": info,
+        "related_media": related,
+        "current_season": season,
+        "season_count": range(1, season_count + 1),
     }
     return HTMLResponse(template.render(data))
 
