@@ -173,6 +173,12 @@ class CacheMetaService:
                 msg = f"Record with hash '{hash}' could not be found."
                 raise CacheMetaServiceExceptions.CacheNotFoundError(msg)
 
+            # check if it's already being cached
+            # and wait for the download to finish
+            while cache_meta.is_downloaded is False:
+                await self.db.refresh(cache_meta)
+                await asyncio.sleep(0.05)
+
             # check if it's pending to be cached
             if cache_meta.is_downloaded is None:
                 cache_meta = await self.update(cache_meta.id, relative_expires_str)
@@ -180,12 +186,6 @@ class CacheMetaService:
             # check if the cached file has expired
             if datetime.now() > cache_meta.expires_at:
                 cache_meta = await self.update(cache_meta.id, relative_expires_str)
-
-            # check if it's already being cached
-            # and wait for the download to finish
-            while cache_meta.is_downloaded is False:
-                await self.db.refresh(cache_meta)
-                await asyncio.sleep(0.05)
 
             # update last_used_at
             cache_meta.last_used_at = datetime.now()
