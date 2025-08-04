@@ -62,8 +62,20 @@ uv sync
 ### Como usar
 1. Navegue ao diretório raiz do projeto e execute o seguinte comando para iniciar o servidor:
 ```console
-uv run manage.py https
+uv run manage.py runserver https
 ```
+> [!IMPORTANT]
+> A aplicação utiliza um sistema de caching para armazenar alguns **arquivos HTML inofensivos** dos provedores localmente e diminuir seu tempo de resposta, porém, o Windows Defender não gosta da obfuscação utilizada por um dos provedores e deleta seus arquivos instantâneamente, quebrando a aplicação. Para evitar esse problema, siga **um** dos passos a seguir:
+> 1. Adicione o diretório da aplicação à lista de exclusão do Windows Defender
+> 
+>   ou
+> 
+> 2. Inicie o servidor com o sistema de caching desativado usando o comando a seguir:
+> ```console
+> uv run manage.py runserver https --disable-cache
+> ```
+> Isso aumentará o tempo de resposta, mas a aplicação irá funcionar exatamente da mesma forma.
+
 2. Instale o addon através da url `https://127.0.0.1:6222/manifest.json`
 
 
