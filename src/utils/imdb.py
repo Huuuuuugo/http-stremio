@@ -68,8 +68,7 @@ class IMDB:
         poster = self._html.find("div", {"data-testid": "hero-media__poster"}).find("img")
         if poster is not None:
             poster = poster.get("src")
-            poster = poster.split("@")[0]
-            poster = poster + "@._V1_.jpg"
+            poster = re.sub(r"@\._.+_\.jpg", "@._V1_QL100_UY720,0,485,720_.jpg", poster)
 
         return poster
 

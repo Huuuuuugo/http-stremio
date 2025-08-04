@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 
-from .views import static, index, redirect, movie_info, watch_movie, series_info, watch_series
+from .views import static, index, redirect, movie_info, watch_movie, series_info, watch_series, search
 
 router = APIRouter(prefix="")
 
@@ -55,3 +55,8 @@ async def watch_series_route(request: Request, id: str, season: int, episode: in
     proxy_url = f"{scheme}://{hostname}{f":{port}" if port else ""}/proxy/stream/"
 
     return await watch_series(id, season, episode, proxy_url)
+
+
+@router.get("/search/")
+async def search_route(term: str):
+    return await search(term)

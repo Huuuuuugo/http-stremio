@@ -26,6 +26,9 @@ class CacheMetaServiceExceptions:
     class SimultaneousUpdateError(Exception):
         pass
 
+    class UnexpectedStatusCode(Exception):
+        pass
+
 
 class DynamicLockManager:
     def __init__(self, max_locks: int = 255):
@@ -56,7 +59,6 @@ class DynamicLockManager:
 lock_manager = DynamicLockManager()
 
 
-# TODO: figure out a way to deal with cached responses with status like 429
 # TODO: add some docstrings explaining the logic on each method
 class CacheMetaService:
     def __init__(self, db: AsyncSession):
@@ -132,6 +134,12 @@ class CacheMetaService:
             request_headers = ast.literal_eval(cache_meta.request_headers)
             async with aiohttp.ClientSession() as session:
                 async with session.get(request_url, headers=request_headers) as response:
+                    # raise exception if the response status code is invalid
+                    if not (199 < response.status < 300):
+                        msg = f"Unexpected status code when caching file: {response.status}"
+                        raise CacheMetaServiceExceptions.UnexpectedStatusCode(msg)
+
+                    # save the response locally
                     async with aiofiles.open(cache_path, "wb") as file:
                         async for chunk in response.content.iter_chunked(1024 * 1024):
                             await file.write(chunk)

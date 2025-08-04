@@ -196,10 +196,24 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str):
     try:
         stream = streams[0]["url"]
     except IndexError:
-        print("apisode stream not found, redirecting to next episode...")
+        print("Episode stream not found, redirecting to next episode...")
         return RedirectResponse(next_url)
 
     # render player template
     template = templates.get_template("player.html")
     data = {"url": stream, "next_url": f"/redirect/?url={next_url}"}
+    return HTMLResponse(template.render(data))
+
+
+async def search(term: str):
+    search_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/search/?term={term}")
+    if config.CACHE_URL:
+        query = urlencode({"url": search_url})
+        search_url = urljoin(config.CACHE_URL, f"?{query}")
+    async with aiohttp.ClientSession() as session:
+        async with session.get(search_url) as res:
+            results = await res.json()
+
+    template = templates.get_template("search.html")
+    data = {"results": results}
     return HTMLResponse(template.render(data))

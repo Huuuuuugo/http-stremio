@@ -2,56 +2,133 @@
 
 {% block title %}{% endblock title %}
 
+{% block head %}
+<style>
+    body {
+        background-image: url("/proxy/cache/?url={{info.background}}");
+        background-attachment: fixed;
+        background-size: cover;
+    }
+</style>
+{% endblock head %}
+
 {% block body %}
-<!-- series info and images -->
-<section>
-    <img src="/proxy/cache/?url={{info.background}}" alt="{{info.title}} background">
-    <img src="/proxy/cache/?url={{info.poster}}" alt="{{info.title}} poster">
-    <img src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
-    <h1>{{info.title}}</h1>
-    <p>{{info.synopsis}}</p>
-</section>
-
-<!-- episodes section -->
-<section>
-    <!-- season selector -->
-    <div>
-        {% for season in season_count %}
-        <a href="/series/{{info.id}}/{{season}}">
-            <div class="{% if season == current_season %}{% endif %}">
-                Season {{season}}
+<div class="bg-slate-950/75 px-4">
+    <!-- series info and images -->
+    <section class="flex flex-row w-4/5 py-4 mx-8">
+        <div class="min-w-1/3 hidden lg:block">
+            <img class="w-full aspect-[2/3] object-cover rounded-xl" src="/proxy/cache/?url={{info.poster}}"
+                alt="{{info.title}} poster">
+        </div>
+        <div class="flex flex-col px-8 py-12">
+            <div class="flex lg:items-center lg:justify-center pb-4">
+                <img class="w-96" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
             </div>
-        </a>
-        {% endfor %}
-    </div>
-
-    <!-- list of episodes -->
-    <div>
-        {% for episode in info.episodes %}
-        {% if episode.season == current_season %}
-        <a href="/redirect/?url=/watch/series/{{info.id}}/{{current_season}}/{{episode.number}}/" target="_blank">
-            <div id="ep-{{current_season}}x{{episode.number}}">
-                <img loading="lazy" src="/proxy/cache/?url={{episode.thumbnail}}" alt="{{episode.title}}"
-                    onerror="this.onerror=null;this.src='/proxy/cache/?url={{background}}';">
-
+            <div class="flex flex-col justify-between h-full p-8">
                 <div>
-                    <div>S{{current_season}} · E{{episode.number}}</div>
-                    <div>{{episode.title}}</div>
+                    <h1 class="text-2xl font-bold">{{info.title}}</h1>
+                    <p>{{info.synopsis}}</p>
                 </div>
-            </div>
-        </a>
-        {% endif %}
-        {% endfor %}
-    </div>
-</section>
 
-<!-- related media section -->
-<section>
-    {% for media in related_media %}
-    <a href="/{{media.type}}/{{media.id}}/">
-        <img src="{{media.poster}}" alt="{{media.name}} poster">
-        <h4>{{media.title}}</h4>
-    </a>
-    {% endfor %}
-</section>
+            </div>
+        </div>
+    </section>
+
+    <!-- episodes section -->
+    <section>
+        <!-- season selector -->
+        <div class="flex flex-row gap-2 py-8 text-center overflow-scroll px-4">
+            {% for season in season_count %}
+            <a href="/series/{{info.id}}/{{season}}">
+                <div class="p-2 rounded-lg text-lg w-36
+                {% if season == current_season %}bg-fuchsia-900{% else %}bg-fuchsia-700{% endif %}">
+                    Temporada {{season}}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- list of episodes -->
+        <h2 class="text-xl font-bold pb-4">LISTA DE EPISÓDIOS:</h2>
+        <div class="flex flex-col gap-4 mx-8 pb-8">
+            {% for episode in info.episodes %}
+            {% if episode.season == current_season %}
+            <a href="/redirect/?url=/watch/series/{{info.id}}/{{current_season}}/{{episode.number}}/" target="_blank">
+                <div class="flex flex-col lg:flex-row lg:h-64 bg-slate-800/90 rounded-xl"
+                    id="ep-{{current_season}}x{{episode.number}}">
+                    <img class="h-full aspect-[16/9] object-cover" loading="lazy"
+                        src="/proxy/cache/?url={{episode.thumbnail}}" alt="{{episode.title}}"
+                        onerror="this.onerror=null;this.src='/proxy/cache/?url={{background}}';">
+
+                    <div class="p-4 text-lg">
+                        <span class="text-cyan-600">S{{current_season}} · E{{episode.number}}</span><br>
+                        <span>{{episode.title}}</span><br><br>
+                        <span class="text-base">{{episode.overview}}</span>
+                    </div>
+                </div>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- related media section -->
+    <section>
+        <h2 class="text-xl font-bold pb-4">FILMES E SÉRIES SEMELHANTES:</h2>
+        <div id="related-media-container" class="flex flex-row overflow-scroll lg:flex-wrap gap-4 pb-8 justify-center">
+            {% for media in related_media %}
+            <a href="/{{media.type}}/{{media.id}}/">
+                <div class="w-40 lg:w-56 bg-slate-800/90 h-full">
+                    <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{media.poster}}"
+                        alt="{{media.name}} poster">
+                    <div class="p-4">
+                        <span class="text-cyan-600">{% if media.type == 'series' %}SÉRIE{% else %}FILME{% endif
+                            %}</span><br>
+                        <span>{{media.title}}</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <script>
+            function fixFlexRowWidth(node) {
+                const nodeWitdh = node.clientWidth
+                const gapSize = parseFloat(window.getComputedStyle(node).gap)
+                const itemSize = node.children[0].clientWidth
+
+                const rowElementCount = Math.floor((nodeWitdh + gapSize) / (itemSize + gapSize))
+                const fillerElementsCount = node.getElementsByClassName('filler').length
+                const totalElementCount = node.childElementCount - fillerElementsCount
+
+                var missingElementsCount = rowElementCount - (totalElementCount % rowElementCount) - fillerElementsCount
+
+                console.log(missingElementsCount);
+
+
+                while (missingElementsCount > 0) {
+                    const fillerDiv = document.createElement('div')
+                    fillerDiv.style.width = `${itemSize}px`
+                    fillerDiv.classList.add('filler')
+                    node.appendChild(fillerDiv)
+
+                    missingElementsCount--
+                }
+                while (missingElementsCount < 0) {
+                    node.getElementsByClassName('filler')[0].remove()
+
+                    missingElementsCount++
+                }
+
+            }
+
+            function applyFlexRowWidthFix() {
+                fixFlexRowWidth(document.getElementById("related-media-container"))
+            }
+
+            window.onload = function () { applyFlexRowWidthFix() }
+            window.addEventListener('resize', () => { applyFlexRowWidthFix() })
+        </script>
+    </section>
+</div>
 {% endblock body %}
