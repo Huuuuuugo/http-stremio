@@ -15,41 +15,43 @@
 {% block body %}
 <div class="bg-slate-950/75 px-4">
     <!-- series info and images -->
-    <section class="flex flex-row w-4/5 py-4 mx-8">
-        <div class="min-w-1/3 hidden lg:block">
-            <img class="w-full aspect-[2/3] object-cover rounded-xl" src="/proxy/cache/?url={{info.poster}}"
-                alt="{{info.title}} poster">
-        </div>
-        <div class="flex flex-col px-8 py-12">
-            <div class="flex lg:items-center lg:justify-center pb-4">
-                <img class="w-96" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
-            </div>
-            <div class="flex flex-col justify-between h-full p-8">
-                <div>
-                    <h1 class="text-2xl font-bold">{{info.title}}</h1>
-                    <p>{{info.synopsis}}</p>
+    <section class="flex flex-col mx-8 h-[92dvh] justify-center">
+        <div class="flex flex-row pt-16 h-full">
+            <img class="h-[90%] aspect-[2/3] hidden lg:block object-cover rounded-xl"
+                src="/proxy/cache/?url={{info.poster}}" alt="{{info.title}} poster">
+
+            <div class="flex flex-col px-8 py-16 overflow-auto h-full">
+                <div class="flex lg:items-center lg:justify-center pb-4">
+                    <img class="max-w-96 max-h-40" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
                 </div>
 
+                <div class="flex flex-col justify-between h-full p-8">
+                    <div>
+                        <h1 class="text-2xl font-bold">{{info.title}}</h1>
+                        <p>{{info.synopsis}}</p>
+                    </div>
+                </div>
+
+                <!-- season selector -->
+                <div class="flex flex-row gap-2 py-8 text-center overflow-scroll px-4">
+                    {% for season in season_count %}
+                    <a href="/series/{{info.id}}/{{season}}/#episodes">
+                        <div class="p-2 rounded-lg text-lg w-36
+                {% if season == current_season %}bg-fuchsia-900{% else %}bg-fuchsia-700{% endif %}">
+                            Temporada {{season}}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </section>
 
     <!-- episodes section -->
     <section>
-        <!-- season selector -->
-        <div class="flex flex-row gap-2 py-8 text-center overflow-scroll px-4">
-            {% for season in season_count %}
-            <a href="/series/{{info.id}}/{{season}}">
-                <div class="p-2 rounded-lg text-lg w-36
-                {% if season == current_season %}bg-fuchsia-900{% else %}bg-fuchsia-700{% endif %}">
-                    Temporada {{season}}
-                </div>
-            </a>
-            {% endfor %}
-        </div>
 
         <!-- list of episodes -->
-        <h2 class="text-xl font-bold pb-4">LISTA DE EPISÓDIOS:</h2>
+        <h2 class="text-xl font-bold pt-16 pb-8" id="episodes">LISTA DE EPISÓDIOS:</h2>
         <div class="flex flex-col gap-4 mx-8 pb-8">
             {% for episode in info.episodes %}
             {% if episode.season == current_season %}
@@ -74,7 +76,7 @@
 
     <!-- related media section -->
     <section>
-        <h2 class="text-xl font-bold pb-4">FILMES E SÉRIES SEMELHANTES:</h2>
+        <h2 class="text-xl font-bold pb-8 pt-16">FILMES E SÉRIES SEMELHANTES:</h2>
         <div id="related-media-container" class="flex flex-row overflow-scroll lg:flex-wrap gap-4 pb-8 justify-center">
             {% for media in related_media %}
             <a href="/{{media.type}}/{{media.id}}/">

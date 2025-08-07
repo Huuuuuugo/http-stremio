@@ -13,20 +13,23 @@
 {% block body %}
 <div class="bg-slate-950/75 px-4">
     <!-- movie info and images -->
-    <section class="flex flex-row w-4/5 py-4">
-        <div class="min-w-1/3 hidden lg:block">
-            <img class="w-full aspect-[2/3] object-cover rounded-xl" src="/proxy/cache/?url={{info.poster}}"
-                alt="{{info.title}} poster">
-        </div>
-        <div class="flex flex-col px-8">
-            <div class="flex lg:items-center lg:justify-center pb-4">
-                <img class="w-96" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
-            </div>
-            <div class="flex flex-col justify-between h-full p-8">
-                <div>
-                    <h1 class="text-2xl font-bold">{{info.title}}</h1>
-                    <p>{{info.synopsis}}</p>
+    <section class="flex flex-col mx-8 h-[92dvh] justify-center">
+        <div class="flex flex-row pt-16 h-full">
+            <img class="h-[90%] aspect-[2/3] hidden lg:block object-fill rounded-xl"
+                src="/proxy/cache/?url={{info.poster}}" alt="{{info.title}} poster">
+
+            <div class="flex flex-col px-8 py-16 overflow-auto">
+                <div class="flex lg:items-center lg:justify-center pb-4">
+                    <img class="max-w-96 max-h-40" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
                 </div>
+
+                <div class="flex flex-col justify-between h-full p-8">
+                    <div>
+                        <h1 class="text-2xl font-bold">{{info.title}}</h1>
+                        <p>{{info.synopsis}}</p>
+                    </div>
+                </div>
+
                 <a href="/redirect/?url=/watch/movie/{{info.id}}" target="_blank">
                     <div class="p-2 rounded-lg text-2xl mx-8 h-15 bg-fuchsia-700 text-center">
                         Assistir
@@ -40,7 +43,7 @@
     <!-- related media section -->
     <section>
         <h2 class="text-xl font-bold pb-4">FILMES E SÉRIES SEMELHANTES:</h2>
-        <div id="related-media-container" class="flex flex-row overflow-scroll lg:flex-wrap gap-4 pb-8 justify-center">
+        <div id="related-media-container" class="flex overflow-scroll flex-wrap gap-4 pb-8 justify-center">
             {% for media in related_media %}
             <a href="/{{media.type}}/{{media.id}}/">
                 <div class="w-40 lg:w-56 bg-slate-800/90 h-full">

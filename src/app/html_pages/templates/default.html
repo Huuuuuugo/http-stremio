@@ -10,7 +10,32 @@
 </head>
 
 <body class="bg-slate-950 text-slate-300">
-    {% block body %}{% endblock body %}
+    <!-- nav bar -->
+    <nav class="fixed w-full flex flex-row justify-center gap-12 h-16 p-3.5 bg-slate-800">
+        <a href="/">
+            <svg class="h-8 w-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12">
+                <path fill="none" stroke="currentColor"
+                    d="M2 11.5h2a.5.5 0 0 0 .5-.5V8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5V6.5h.389a.496.496 0 0 0 .413-.838L6.422.681a.59.59 0 0 0-.844 0L.698 5.662a.496.496 0 0 0 .413.838H1.5V11a.5.5 0 0 0 .5.5z">
+                </path>
+            </svg>
+        </a>
+
+        <form class="flex flex-row gap-2" action="/search/">
+            <input class="bg-slate-600 rounded-xl px-2 h-full" type="search" name="term" id="search-term">
+            <button type="submit">
+                <svg class="h-10 w-10" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path fill="currentColor"
+                        d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14">
+                    </path>
+                </svg>
+            </button>
+        </form>
+    </nav>
+
+    <!-- main section -->
+    <section class="pt-16">
+        {% block body %}{% endblock body %}
+    </section>
 </body>
 
 </html>
