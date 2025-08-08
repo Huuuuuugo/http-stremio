@@ -86,15 +86,22 @@ class IMDB:
             "poster": self.poster,
         }
 
-    async def get_related_media(self) -> list[IMDB]:
+    async def get_related_media(self, ids_only: bool = False) -> list[IMDB]:
         related_media = self._html.find("section", {"data-testid": "MoreLikeThis"})
         related_media = related_media.find("div", {"data-testid": "shoveler"})
         related_media = related_media.find("div", {"data-testid": "shoveler-items-container"})
 
-        tasks = []
+        media_ids = []
         for item in related_media.find_all("div", {"class": "ipc-poster-card"}):
             media_href = item.find("div", {"class": "ipc-poster"}).find("a").get("href")
             media_id = re.findall(r"(tt\d+)", media_href)[0]
+            media_ids.append(media_id)
+
+        if ids_only:
+            return media_ids
+
+        tasks = []
+        for media_id in media_ids:
             tasks.append(get_media(media_id, self._lang, self._cache_url))
 
         return await asyncio.gather(*tasks)

@@ -1,13 +1,20 @@
+from contextlib import asynccontextmanager
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import html_pages, proxy, stremio, info
+from . import website, proxy, stremio, info
 from .db import init_db
 from .test_routes import router as tests_router
+from .proxy.tasks import repeat_tasks
 
 
+# TODO: think of a more scalable way to run repeated tasks from any app
+@asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    asyncio.create_task(repeat_tasks(30))
     yield
 
 
@@ -20,7 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(html_pages.router)
+app.include_router(website.router)
 app.include_router(proxy.router)
 app.include_router(stremio.router)
 app.include_router(info.router)

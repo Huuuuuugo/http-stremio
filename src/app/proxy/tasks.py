@@ -30,7 +30,16 @@ async def delete_exceeding_caches():
 
                     # mark the cache to be deleted and subtract its size from the exceeding bytes
                     tasks.append(cache_meta_service.delete(cache_meta.id))
-                    exceeding_bytes -= cache_meta.cache_size
+                    try:
+                        exceeding_bytes -= cache_meta.cache_size
+                    except TypeError:
+                        pass
 
                 # delete all the marked downloads simultaneously
                 await asyncio.gather(*tasks)
+
+
+async def repeat_tasks(delay: float):
+    while True:
+        await delete_exceeding_caches()
+        await asyncio.sleep(delay)

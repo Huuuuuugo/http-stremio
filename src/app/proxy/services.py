@@ -235,9 +235,6 @@ class CacheMetaService:
 
             # create the cache metadata records if it doesn't exist already
             except CacheMetaServiceExceptions.CacheNotFoundError:
-                from .tasks import delete_exceeding_caches
-
-                asyncio.create_task(delete_exceeding_caches())  # run the delete task without blocking the method
                 cache_meta = await self.create(request_url, request_headers, relative_expires_str)
 
         # run the read method
