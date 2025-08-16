@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "dev": "npx @tailwindcss/cli -i ./src/app/html_pages/static/css/input.css -o ./src/app/html_pages/static/css/output.css --watch",
-    "build": "npx @tailwindcss/cli -i ./src/app/html_pages/static/css/input.css -o ./src/app/html_pages/static/css/output.css --minify"
+    "dev": "npx @tailwindcss/cli -i ./src/app/website/static/css/input.css -o ./src/app/website/static/css/output.css --watch",
+    "build": "npx @tailwindcss/cli -i ./src/app/website/static/css/input.css -o ./src/app/website/static/css/output.css --minify"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.11",
