@@ -10,8 +10,7 @@ from fastapi import HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
 from src.app import config
-from src.utils import imdb
-from src.scrapers import redecanais
+from src.scrapers import redecanais, pobreflix
 from .constants import TEMPLATES_DIR, STATIC_DIR
 
 templates = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
@@ -162,9 +161,21 @@ async def series_info(id: str, season: int):
 
 
 async def watch_movie(id: str, proxy_url: str):
-    # get stream
-    streams = await redecanais.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL)
-    stream = streams[0]["url"]
+    # run scrapers
+    tasks = [
+        pobreflix.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL),
+        redecanais.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL),
+    ]
+    results = await asyncio.gather(*tasks)
+    streams = []
+    for result in results:
+        streams += result
+
+    # get stream or return 404 error
+    try:
+        stream = streams[0]["url"]
+    except IndexError:
+        raise HTTPException(404, "Stream not found")
 
     # render player template
     template = templates.get_template("player.html")
@@ -191,8 +202,17 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str):
             next_url = f"/watch/series/{id}/{ep_dict['season']}/{ep_dict['number']}"
             break
 
-    # get stream
-    streams = await redecanais.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL)
+    # run scrapers
+    tasks = [
+        pobreflix.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL),
+        redecanais.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL),
+    ]
+    results = await asyncio.gather(*tasks)
+    streams = []
+    for result in results:
+        streams += result
+
+    # get stream or redirect to next episode if none is found
     try:
         stream = streams[0]["url"]
     except IndexError:
