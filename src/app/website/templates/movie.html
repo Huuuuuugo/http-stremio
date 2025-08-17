@@ -8,17 +8,20 @@
         background-size: cover;
     }
 </style>
+{% if use_old_css %}
+<link rel="stylesheet" href="/static/css/output.old.css">
+{% endif %}
 {% endblock head %}
 
 {% block body %}
 <div class="bg-slate-950/75 px-4">
     <!-- movie info and images -->
     <section class="flex flex-col mx-8 h-[92dvh] justify-center">
-        <div class="flex flex-row pt-16 h-full">
-            <img class="h-[90%] aspect-[2/3] hidden lg:block object-fill rounded-xl"
-                src="/proxy/cache/?url={{info.poster}}" alt="{{info.title}} poster">
+        <div class="flex flex-row pt-16 h-full w-full">
+            <img class="min-w-96 hidden lg:block rounded-xl" src="/proxy/cache/?url={{info.poster}}"
+                alt="{{info.title}} poster">
 
-            <div class="flex flex-col px-8 py-16 overflow-auto">
+            <div class="flex flex-col px-8 py-16 w-4/5 h-[80%]">
                 <div class="flex lg:items-center lg:justify-center pb-4">
                     <img class="max-w-96 max-h-40" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
                 </div>
@@ -26,22 +29,43 @@
                 <div class="flex flex-col justify-between h-full p-8">
                     <div>
                         <h1 class="text-2xl font-bold">{{info.title}}</h1>
-                        <p>{{info.synopsis}}</p>
-                    </div>
-                </div>
+                        <p class="text-lg">{{info.synopsis}}</p>
+                        <br>
+                        <div class="flex flex-row justify-center items-center pb-4 text-lg font-bold">
+                            <div class="mx-4">
+                                Filme
+                            </div>
+                            •
+                            <div class="mx-4">
+                                {{info.year}}{% if info.end_year %}-{{info.end_year}}{% endif %}
+                            </div>
+                            •
+                            <div class="flex flex-row justify-center items-center mx-4">
+                                <svg class="w-8 h-8 text-amber-300" viewBox="0 0 24 24" fill="currentColor"
+                                    role="presentation">
+                                    <path
+                                        d="M12 17.27l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72 3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18-1.1 4.72c-.2.86.73 1.54 1.49 1.08l4.15-2.5z">
+                                    </path>
+                                </svg>
 
-                <a href="/redirect/?url=/watch/movie/{{info.id}}" target="_blank">
-                    <div class="p-2 rounded-lg text-2xl mx-8 h-15 bg-fuchsia-700 text-center">
-                        Assistir
+                                {{info.rating}}
+                            </div>
+                        </div>
                     </div>
-                </a>
+
+                    <a href="/redirect/?url=/watch/movie/{{info.id}}" target="_blank">
+                        <div class="p-2 rounded-lg text-2xl mx-8 h-15 bg-fuchsia-700 text-center">
+                            Assistir
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
     </section>
 
 
     <!-- related media section -->
-    <section>
+    <section class="pt-8">
         <h2 class="text-xl font-bold pb-4">FILMES E SÉRIES SEMELHANTES:</h2>
         <div id="related-media-container" class="flex overflow-scroll flex-wrap gap-4 pb-8 justify-center">
             {% for media in related_media %}
