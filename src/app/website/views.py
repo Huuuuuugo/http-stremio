@@ -2,6 +2,7 @@ from urllib.parse import urljoin, urlencode
 import asyncio
 import json
 import os
+import re
 
 import aiohttp
 import aiofiles
@@ -16,7 +17,22 @@ from .constants import TEMPLATES_DIR, STATIC_DIR
 templates = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
 
 
-async def static(subfolder: str, file: str):
+async def static(subfolder: str, file: str, user_agent: str = ""):
+    # if the tailwind css output is requested, check the browser version
+    # if the browser is too old, redirect to a compatible version of the css file
+    if subfolder == "css" and file == "output.css":
+        matches = re.findall(r"((?:Chrome)|(?:Firefox))/(\d+)\.", user_agent)
+        print(matches)
+        if matches:
+            browser, version = matches[0]
+            match browser:
+                case "Chrome":
+                    if int(version) < 57:
+                        return RedirectResponse("/static/css/output.old.css")
+                case "Firefox":
+                    if int(version) < 52:
+                        return RedirectResponse("/static/css/output.old.css")
+
     static_path = os.path.join(STATIC_DIR, subfolder, file)
     if not os.path.exists(static_path):
         raise HTTPException(404, "File not found")

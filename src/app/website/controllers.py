@@ -6,8 +6,14 @@ router = APIRouter(prefix="")
 
 
 @router.get("/static/{subfolder}/{file}")
-async def static_route(subfolder: str, file: str):
-    return await static(subfolder, file)
+async def static_route(request: Request, subfolder: str, file: str):
+    headers = {key.lower(): request.headers.get(key) for key in request.headers.keys()}
+    try:
+        user_agent = headers["user-agent"]
+    except KeyError:
+        user_agent = ""
+
+    return await static(subfolder, file, user_agent)
 
 
 @router.get("/")
