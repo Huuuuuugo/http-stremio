@@ -33,8 +33,30 @@ class IMDB:
                 matches = re.match(r"\d{4}", text)
                 if matches:
                     year = int(matches[0])
+                    break
 
         return year
+
+    @property
+    def end_year(self):
+        end_year = None
+
+        if self.type == "movie":
+            end_year = self.year
+
+        else:
+            # get release year by finding an 'li' element with exactly 4 integers
+            for ul in self._html.find_all("ul"):
+                ul: BeautifulSoup
+                li_elements = ul.find_all("li", {"class": "ipc-inline-list__item"})
+                for li in li_elements:
+                    text = li.text.strip()
+                    matches = re.findall(r"^\d{4}.(\d{4})$", text)
+                    if matches:
+                        end_year = int(matches[0])
+                        break
+
+        return end_year
 
     @property
     def type(self):
@@ -67,8 +89,30 @@ class IMDB:
     def poster(self):
         poster = self._html.find("div", {"data-testid": "hero-media__poster"}).find("img")
         if poster is not None:
+            target_w = 480
             poster = poster.get("src")
-            poster = re.sub(r"@\._.+_\.jpg", "@._V1_QL100_UY720,0,485,720_.jpg", poster)
+
+            # get crop params from original image
+            crop = re.findall(r"\._.*CR(\d+),(\d+),(\d+),(\d+)_.*\.jpg", poster)
+            crop_str = ""
+            if crop:
+                # scale crop params to the new target width
+                x, y, w, h = map(int, crop[0])
+                scale = h / w
+
+                target_h = round(target_w * scale)
+
+                x = int(x * target_w / w)
+                y = int(y * target_h / h)
+
+                crop_str = f"CR{x},{y},{target_w},{target_h}"
+
+            if "UY" in poster:
+                dimension_str = f"UY{target_h}"
+            else:
+                dimension_str = f"UX{target_w}"
+
+            poster = re.sub(r"\._.+_\.jpg", f"._V1_QL100_{dimension_str}_{crop_str}_.jpg", poster)
 
         return poster
 

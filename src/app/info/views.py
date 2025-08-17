@@ -11,6 +11,7 @@ async def imdb_info(id: str, lang: str):
         "id": media.id,
         "title": media.title,
         "year": media.year,
+        "end_year": media.end_year,
         "type": media.type,
         "synopsis": media.synopsis,
         "rating": media.rating,
@@ -26,6 +27,9 @@ async def imdb_info(id: str, lang: str):
                 stremio_info = await response.json()
 
         info_dict.update({"episodes": stremio_info["meta"]["videos"]})
+
+    else:
+        info_dict.pop("end_year")
 
     return JSONResponse(info_dict)
 
