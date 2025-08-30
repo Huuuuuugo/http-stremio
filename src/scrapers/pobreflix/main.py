@@ -9,7 +9,7 @@ from src.utils import imdb
 from .exceptions import *
 
 
-BASE_URL = "https://pobreflixtv.love/"
+BASE_URL = "https://pobreflixtv.bid/"
 
 
 class PobreflixResult:
@@ -28,9 +28,10 @@ async def search(search_term: str) -> list[PobreflixResult]:
     query_params = urlencode({"p": search_term})
     search_url = urljoin(BASE_URL, "pesquisar")
     search_url = f"{search_url}?{query_params}"
+    headers = {"referer": BASE_URL}
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(search_url) as response:
+        async with session.get(search_url, headers=headers) as response:
             if response.status != 200:
                 msg = f"Unexpected status code when fetching page. Expected '200', got '{response.status}'"
                 raise UnexpectedStatusCode(msg)
