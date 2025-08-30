@@ -9,8 +9,9 @@ import aiohttp
 
 
 class IMDB:
-    def __init__(self, id: str, html: BeautifulSoup | None = None, cache_url: str | None = None):
+    def __init__(self, id: str, lang: str, html: BeautifulSoup | None = None, cache_url: str | None = None):
         self.id = id
+        self._lang = lang
         self._html = html
         self._cache_url = cache_url
 
@@ -32,22 +33,120 @@ class IMDB:
                 matches = re.match(r"\d{4}", text)
                 if matches:
                     year = int(matches[0])
+                    break
 
         return year
+
+    @property
+    def end_year(self):
+        end_year = None
+
+        if self.type == "movie":
+            end_year = self.year
+
+        else:
+            # get release year by finding an 'li' element with exactly 4 integers
+            for ul in self._html.find_all("ul"):
+                ul: BeautifulSoup
+                li_elements = ul.find_all("li", {"class": "ipc-inline-list__item"})
+                for li in li_elements:
+                    text = li.text.strip()
+                    matches = re.findall(r"^\d{4}.(\d{4})$", text)
+                    if matches:
+                        end_year = int(matches[0])
+                        break
+
+        return end_year
+
+    @property
+    def type(self):
+        episodes_header = self._html.find("div", {"data-testid": "episodes-header"})
+        if episodes_header:
+            type = "series"
+        else:
+            type = "movie"
+
+        return type
+
+    @property
+    def synopsis(self):
+        synopsis = self._html.find("span", {"data-testid": "plot-xl"})
+        if synopsis is not None:
+            synopsis = synopsis.text
+
+        return synopsis
+
+    @property
+    def rating(self):
+        rating = self._html.find("span", {"class": "ipc-rating-star--rating"})
+        if rating is not None:
+            rating = rating.text
+            rating = float(rating.replace(",", "."))
+
+        return rating
+
+    @property
+    def poster(self):
+        poster = self._html.find("div", {"data-testid": "hero-media__poster"}).find("img")
+        if poster is not None:
+            target_w = 480
+            poster = poster.get("src")
+
+            # get crop params from original image
+            crop = re.findall(r"\._.*CR(\d+),(\d+),(\d+),(\d+)_.*\.jpg", poster)
+            crop_str = ""
+            if crop:
+                # scale crop params to the new target width
+                x, y, w, h = map(int, crop[0])
+                scale = h / w
+
+                target_h = round(target_w * scale)
+
+                x = int(x * target_w / w)
+                y = int(y * target_h / h)
+
+                crop_str = f"CR{x},{y},{target_w},{target_h}"
+
+            if "UY" in poster:
+                dimension_str = f"UY{target_h}"
+            else:
+                dimension_str = f"UX{target_w}"
+
+            poster = re.sub(r"\._.+_\.jpg", f"._V1_QL100_{dimension_str}_{crop_str}_.jpg", poster)
+
+        return poster
 
     def __repr__(self):
         return f"<IMDB:(id={self.id}, title={self.title}, year={self.year})>"
 
-    async def get_related_media(self) -> list[IMDB]:
+    def to_json(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "year": self.year,
+            "type": self.type,
+            "synopsis": self.synopsis,
+            "rating": self.rating,
+            "poster": self.poster,
+        }
+
+    async def get_related_media(self, ids_only: bool = False) -> list[IMDB]:
         related_media = self._html.find("section", {"data-testid": "MoreLikeThis"})
         related_media = related_media.find("div", {"data-testid": "shoveler"})
         related_media = related_media.find("div", {"data-testid": "shoveler-items-container"})
 
-        tasks = []
+        media_ids = []
         for item in related_media.find_all("div", {"class": "ipc-poster-card"}):
             media_href = item.find("div", {"class": "ipc-poster"}).find("a").get("href")
             media_id = re.findall(r"(tt\d+)", media_href)[0]
-            tasks.append(get_media(media_id, "pt", self._cache_url))
+            media_ids.append(media_id)
+
+        if ids_only:
+            return media_ids
+
+        tasks = []
+        for media_id in media_ids:
+            tasks.append(get_media(media_id, self._lang, self._cache_url))
 
         return await asyncio.gather(*tasks)
 
@@ -71,7 +170,7 @@ async def get_media(
 
     # get header value for the specified language
     try:
-        lang = accept_languages[lang]
+        lang_header = accept_languages[lang]
     except KeyError:
         msg = f"Invalid value for attribute 'lang'. Got '{lang}', expected any of the following: ['en', 'fr', 'de', 'es', 'pt', 'ja', 'zh']"
         raise AttributeError(msg)
@@ -81,7 +180,7 @@ async def get_media(
         imdb_url = f"https://www.imdb.com/title/{id}/"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            "Accept-Language": lang,
+            "Accept-Language": lang_header,
         }
 
         if cache_url:
@@ -96,10 +195,10 @@ async def get_media(
 
             imdb_html = BeautifulSoup(await response.text(), "html.parser")
 
-    return IMDB(id, html=imdb_html, cache_url=cache_url)
+    return IMDB(id, lang, html=imdb_html, cache_url=cache_url)
 
 
-async def search(term: str, cache_url: str | None = None) -> list[IMDB]:
+async def search(term: str, lang: str, cache_url: str | None = None) -> list[IMDB]:
     url = f"https://v3.sg.media-imdb.com/suggestion/x/{term}.json?includeVideos=1"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as res:
@@ -110,7 +209,7 @@ async def search(term: str, cache_url: str | None = None) -> list[IMDB]:
     for result in results:
         id = result["id"]
         if re.match(r"tt\d+", id):
-            tasks.append(get_media(id, "pt", cache_url))
+            tasks.append(get_media(id, lang, cache_url))
 
     results_list = await asyncio.gather(*tasks)
     results_list = [result for result in results_list if result is not None]

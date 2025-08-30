@@ -1,0 +1,82 @@
+{% extends 'default.html' %}
+{% block title %}Página Inicial{% endblock title %}
+
+{% block body %}
+<div class="p-4">
+    <section>
+        <h2 class="text-xl font-bold pb-4">SÉRIES:</h2>
+        <div id="series-container" class="flex flex-wrap gap-4 pb-8 justify-center">
+            {% for series in selected_series %}
+            <a href="/series/{{series.id}}">
+                <div class="w-56 bg-slate-800/90 h-full">
+                    <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{series.poster}}"
+                        alt="{{series.title}}">
+                    <div class="p-4">
+                        <span class="text-cyan-600">SÉRIE</span><br>
+                        <span>{{series.title}}</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-xl font-bold pb-4">FILMES:</h2>
+        <div id="movies-container" class="flex flex-wrap gap-4 pb-8 justify-center">
+            {% for movie in selected_movies %}
+            <a href="/movie/{{movie.id}}">
+                <div class="w-56 bg-slate-800 h-full">
+                    <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{movie.poster}}"
+                        alt="{{movie.title}}">
+                    <div class="p-4">
+                        <span class="text-cyan-600">FILME</span><br>
+                        <span>{{movie.title}}</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <script>
+        function fixFlexRowWidth(node) {
+            const nodeWitdh = node.clientWidth
+            const gapSize = parseFloat(window.getComputedStyle(node).gap)
+            const itemSize = node.children[0].clientWidth
+
+            const rowElementCount = Math.floor((nodeWitdh + gapSize) / (itemSize + gapSize))
+            const fillerElementsCount = node.getElementsByClassName('filler').length
+            const totalElementCount = node.childElementCount - fillerElementsCount
+
+            var missingElementsCount = rowElementCount - (totalElementCount % rowElementCount) - fillerElementsCount
+
+            console.log(missingElementsCount);
+
+
+            while (missingElementsCount > 0) {
+                const fillerDiv = document.createElement('div')
+                fillerDiv.style.width = `${itemSize}px`
+                fillerDiv.classList.add('filler')
+                node.appendChild(fillerDiv)
+
+                missingElementsCount--
+            }
+            while (missingElementsCount < 0) {
+                node.getElementsByClassName('filler')[0].remove()
+
+                missingElementsCount++
+            }
+
+        }
+
+        function applyFlexRowWidthFix() {
+            fixFlexRowWidth(document.getElementById("series-container"))
+            fixFlexRowWidth(document.getElementById("movies-container"))
+        }
+
+        window.onload = function () { applyFlexRowWidthFix() }
+        window.addEventListener('resize', () => { applyFlexRowWidthFix() })
+    </script>
+</div>
+{% endblock body %}

@@ -1,0 +1,157 @@
+{% extends 'default.html' %}
+
+{% block title %}{% endblock title %}
+
+{% block head %}
+<style>
+    body {
+        background-image: url("/proxy/cache/?url={{info.background}}");
+        background-attachment: fixed;
+        background-size: cover;
+    }
+</style>
+{% endblock head %}
+
+{% block body %}
+<div class="bg-slate-950/75 px-4">
+    <!-- series info and images -->
+    <section class="flex flex-col mx-8 h-[92dvh] justify-center">
+        <div class="flex flex-row pt-16 h-full w-full">
+            <img class="min-w-96 hidden lg:block rounded-xl" src="/proxy/cache/?url={{info.poster}}"
+                alt="{{info.title}} poster">
+
+            <div class="flex flex-col px-8 py-16 overflow-auto w-4/5 h-[80%]">
+                <div class="flex lg:items-center lg:justify-center pb-4">
+                    <img class="max-w-96 max-h-40" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
+                </div>
+
+                <div class="flex flex-col justify-between h-full p-8">
+                    <div>
+                        <h1 class="text-2xl font-bold">{{info.title}}</h1>
+                        <p class="text-lg">{{info.synopsis}}</p>
+                        <br>
+                        <div class="flex flex-row justify-center items-center pb-4 text-lg font-bold">
+                            <div class="mx-4">
+                                Série
+                            </div>
+                            •
+                            <div class="mx-4">
+                                {{info.year}}-{% if info.end_year %}{{info.end_year}}{% endif %}
+                            </div>
+                            •
+                            <div class="flex flex-row justify-center items-center mx-4">
+                                <svg class="w-8 h-8 text-amber-300" viewBox="0 0 24 24" fill="currentColor"
+                                    role="presentation">
+                                    <path
+                                        d="M12 17.27l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72 3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18-1.1 4.72c-.2.86.73 1.54 1.49 1.08l4.15-2.5z">
+                                    </path>
+                                </svg>
+
+                                {{info.rating}}
+                            </div>
+                        </div>
+                        <!-- season selector -->
+                        <div class="flex flex-row gap-2 py-8 text-center overflow-scroll px-4">
+                            {% for season in season_count %}
+                            <a href="/series/{{info.id}}/{{season}}/#episodes">
+                                <div class="p-2 rounded-lg text-lg w-36
+                        {% if season == current_season %}bg-fuchsia-900{% else %}bg-fuchsia-700{% endif %}">
+                                    Temporada {{season}}
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- episodes section -->
+    <section>
+
+        <!-- list of episodes -->
+        <h2 class="text-xl font-bold pt-16 pb-8" id="episodes">LISTA DE EPISÓDIOS:</h2>
+        <div class="flex flex-col gap-4 mx-8 pb-8">
+            {% for episode in info.episodes %}
+            {% if episode.season == current_season %}
+            <a href="/redirect/?url=/watch/series/{{info.id}}/{{current_season}}/{{episode.number}}/" target="_blank">
+                <div class="flex flex-col lg:flex-row lg:h-64 bg-slate-800/90 rounded-xl"
+                    id="ep-{{current_season}}x{{episode.number}}">
+                    <img class="h-full aspect-[16/9] object-cover" loading="lazy"
+                        src="/proxy/cache/?url={{episode.thumbnail}}" alt="{{episode.title}}"
+                        onerror="this.onerror=null;this.src='/proxy/cache/?url={{background}}';">
+
+                    <div class="p-4 text-lg w-4/5">
+                        <span class="text-cyan-600">S{{current_season}} · E{{episode.number}}</span><br>
+                        <span>{{episode.title}}</span><br><br>
+                        <span class="text-base">{{episode.overview}}</span>
+                    </div>
+                </div>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- related media section -->
+    <section>
+        <h2 class="text-xl font-bold pb-8 pt-16">FILMES E SÉRIES SEMELHANTES:</h2>
+        <div id="related-media-container" class="flex flex-row overflow-scroll lg:flex-wrap gap-4 pb-8 justify-center">
+            {% for media in related_media %}
+            <a href="/{{media.type}}/{{media.id}}/">
+                <div class="w-40 lg:w-56 bg-slate-800/90 h-full">
+                    <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{media.poster}}"
+                        alt="{{media.name}} poster">
+                    <div class="p-4">
+                        <span class="text-cyan-600">{% if media.type == 'series' %}SÉRIE{% else %}FILME{% endif
+                            %}</span><br>
+                        <span>{{media.title}}</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <script>
+            function fixFlexRowWidth(node) {
+                const nodeWitdh = node.clientWidth
+                const gapSize = parseFloat(window.getComputedStyle(node).gap)
+                const itemSize = node.children[0].clientWidth
+
+                const rowElementCount = Math.floor((nodeWitdh + gapSize) / (itemSize + gapSize))
+                const fillerElementsCount = node.getElementsByClassName('filler').length
+                const totalElementCount = node.childElementCount - fillerElementsCount
+
+                var missingElementsCount = rowElementCount - (totalElementCount % rowElementCount) - fillerElementsCount
+
+                console.log(missingElementsCount);
+
+
+                while (missingElementsCount > 0) {
+                    const fillerDiv = document.createElement('div')
+                    fillerDiv.style.width = `${itemSize}px`
+                    fillerDiv.classList.add('filler')
+                    node.appendChild(fillerDiv)
+
+                    missingElementsCount--
+                }
+                while (missingElementsCount < 0) {
+                    node.getElementsByClassName('filler')[0].remove()
+
+                    missingElementsCount++
+                }
+
+            }
+
+            function applyFlexRowWidthFix() {
+                fixFlexRowWidth(document.getElementById("related-media-container"))
+            }
+
+            window.onload = function () { applyFlexRowWidthFix() }
+            window.addEventListener('resize', () => { applyFlexRowWidthFix() })
+        </script>
+    </section>
+</div>
+{% endblock body %}

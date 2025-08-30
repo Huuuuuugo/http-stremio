@@ -1,70 +1,40 @@
 {
     "series": [
-        {
-            "name": "Bluey",
-            "id": "tt7678620"
-        },
-        {
-            "name": "Patrulha Canina",
-            "id": "tt3121722"
-        },
-        {
-            "name": "Kung Fu Panda: Lendas do Dragão Guerreiro",
-            "id": "tt1545214"
-        },
-        {
-            "name": "Bob Esponja Calça Quadrada",
-            "id": "tt0206512"
-        },
-        {
-            "name": "O Incrível Mundo de Gumball",
-            "id": "tt1942683"
-        },
-        {
-            "name": "As Meninas Superpoderosas",
-            "id": "tt0175058"
-        },
-        {
-            "name": "Os Backyardigans",
-            "id": "tt0439349"
-        },
-        {
-            "name": "Zoboomafoo",
-            "id": "tt0190211"
-        }
+        "tt7678620",
+        "tt3121722",
+        "tt1545214",
+        "tt0206512",
+        "tt1865718",
+        "tt0275137",
+        "tt0103359",
+        "tt12211696",
+        "tt1710308",
+        "tt1305826",
+        "tt0106115",
+        "tt0780438",
+        "tt1877889",
+        "tt1942683",
+        "tt0175058",
+        "tt0439349",
+        "tt0190211"
     ],
     "movies": [
-        {
-            "name": "Minions",
-            "id": "tt2293640"
-        },
-        {
-            "name": "Shaun Carneiro",
-            "id": "tt2872750"
-        },
-        {
-            "name": "My Neighbor Totoro",
-            "id": "tt0096283"
-        },
-        {
-            "name": "Ponyo",
-            "id": "tt0876563"
-        },
-        {
-            "name": "Toy Story 2",
-            "id": "tt0120363"
-        },
-        {
-            "name": "Toy Story 3",
-            "id": "tt0435761"
-        },
-        {
-            "name": "Shrek",
-            "id": "tt0126029"
-        },
-        {
-            "name": "Octonautas e o Anel de Fogo",
-            "id": "tt13779166"
-        }
+        "tt0267913",
+        "tt0331632",
+        "tt0126029",
+        "tt2948356",
+        "tt6718170",
+        "tt0099785",
+        "tt2293640",
+        "tt2872750",
+        "tt0096283",
+        "tt0876563",
+        "tt0120363",
+        "tt0435761",
+        "tt0126029",
+        "tt0088763",
+        "tt0096874",
+        "tt0099088",
+        "tt13779166"
     ]
 }

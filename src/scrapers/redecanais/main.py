@@ -93,6 +93,7 @@ async def find_episode_pages(series_page_url: str, season: int, episode: int, ca
     episode_urls = []
     episode_audios = []
     episode_pages = {}
+    curr_episode_number = 1
     for line in episodes_html.splitlines():
         # search for the target season
         if not season_found:
@@ -102,9 +103,11 @@ async def find_episode_pages(series_page_url: str, season: int, episode: int, ca
 
         # search for the target episode
         elif not episode_found:
-            if "Ep" in line and str(episode) in line:
-                episode_found = True
-                continue
+            if "Episódio" in line:
+                if curr_episode_number == episode:
+                    episode_found = True
+                    continue
+                curr_episode_number += 1
 
         # search for the episode pages urls
         else:
@@ -134,7 +137,6 @@ async def find_episode_pages(series_page_url: str, season: int, episode: int, ca
     return episode_pages
 
 
-# TODO: update it to work with pages that don't reset the episode number on each season
 async def get_series_pages(imdb_id: str, season: int, episode: int, cache_url: None | str = None):
     # check if the episode page url is inside series.json
     try:

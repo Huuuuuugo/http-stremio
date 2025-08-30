@@ -4,9 +4,12 @@ from src.scrapers import pobreflix, redecanais, warezcdn
 
 # conjunction of raw hosts strings defined here and on each scraper
 ALLOWED_HOSTS = [
+    "localhost",
     "www.imdb.com",
     "live.metahub.space",
+    "m.media-amazon.com",
     "images.metahub.space",
+    "v3-cinemeta.strem.io",
     "episodes.metahub.space",
     *pobreflix.ALLOWED_HOSTS,
     *redecanais.ALLOWED_HOSTS,

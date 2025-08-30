@@ -26,6 +26,9 @@ class CacheMetaServiceExceptions:
     class SimultaneousUpdateError(Exception):
         pass
 
+    class UnexpectedStatusCode(Exception):
+        pass
+
 
 class DynamicLockManager:
     def __init__(self, max_locks: int = 255):
@@ -38,10 +41,11 @@ class DynamicLockManager:
             # create new lock if doesn't exist already
             if key not in self._locks.keys():
                 # clear locks after a certain threshold
-                if len(self._locks) > self._max_locks:
-                    for key in self._locks:
+                if len(self._locks) >= self._max_locks:
+                    for key in self._locks.keys():
                         if not self._locks[key].locked():
                             del self._locks[key]
+                            break
 
                 # create and save lock
                 lock = asyncio.Lock()
@@ -55,7 +59,6 @@ class DynamicLockManager:
 lock_manager = DynamicLockManager()
 
 
-# TODO: figure out a way to deal with cached responses with status like 429
 # TODO: add some docstrings explaining the logic on each method
 class CacheMetaService:
     def __init__(self, db: AsyncSession):
@@ -131,6 +134,12 @@ class CacheMetaService:
             request_headers = ast.literal_eval(cache_meta.request_headers)
             async with aiohttp.ClientSession() as session:
                 async with session.get(request_url, headers=request_headers) as response:
+                    # raise exception if the response status code is invalid
+                    if not (199 < response.status < 300):
+                        msg = f"Unexpected status code when caching file: {response.status}"
+                        raise CacheMetaServiceExceptions.UnexpectedStatusCode(msg)
+
+                    # save the response locally
                     async with aiofiles.open(cache_path, "wb") as file:
                         async for chunk in response.content.iter_chunked(1024 * 1024):
                             await file.write(chunk)
@@ -172,6 +181,12 @@ class CacheMetaService:
                 msg = f"Record with hash '{hash}' could not be found."
                 raise CacheMetaServiceExceptions.CacheNotFoundError(msg)
 
+            # check if it's already being cached
+            # and wait for the download to finish
+            while cache_meta.is_downloaded is False:
+                await self.db.refresh(cache_meta)
+                await asyncio.sleep(0.05)
+
             # check if it's pending to be cached
             if cache_meta.is_downloaded is None:
                 cache_meta = await self.update(cache_meta.id, relative_expires_str)
@@ -179,12 +194,6 @@ class CacheMetaService:
             # check if the cached file has expired
             if datetime.now() > cache_meta.expires_at:
                 cache_meta = await self.update(cache_meta.id, relative_expires_str)
-
-            # check if it's already being cached
-            # and wait for the download to finish
-            while cache_meta.is_downloaded is False:
-                await self.db.refresh(cache_meta)
-                await asyncio.sleep(0.05)
 
             # update last_used_at
             cache_meta.last_used_at = datetime.now()
@@ -226,9 +235,6 @@ class CacheMetaService:
 
             # create the cache metadata records if it doesn't exist already
             except CacheMetaServiceExceptions.CacheNotFoundError:
-                from .tasks import delete_exceeding_caches
-
-                asyncio.create_task(delete_exceeding_caches())  # run the delete task without blocking the method
                 cache_meta = await self.create(request_url, request_headers, relative_expires_str)
 
         # run the read method

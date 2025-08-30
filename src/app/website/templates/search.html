@@ -1,0 +1,61 @@
+{% extends 'default.html' %}
+
+{% block body %}
+<section class="p-4">
+    <h2 class="text-xl font-bold pb-4">RESULTADOS:</h2>
+    <div id="results-container" class="flex flex-row overflow-scroll lg:flex-wrap gap-4 pb-8 justify-center">
+        {% for media in results %}
+        <a href="/{{media.type}}/{{media.id}}/">
+            <div class="w-40 lg:w-56 bg-slate-800/90 h-full">
+                <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{media.poster}}"
+                    alt="{{media.name}} poster">
+                <div class="p-4">
+                    <span class="text-cyan-600">{% if media.type == 'series' %}SÉRIE{% else %}FILME{% endif
+                        %}</span><br>
+                    <span>{{media.title}}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <script>
+        function fixFlexRowWidth(node) {
+            const nodeWitdh = node.clientWidth
+            const gapSize = parseFloat(window.getComputedStyle(node).gap)
+            const itemSize = node.children[0].clientWidth
+
+            const rowElementCount = Math.floor((nodeWitdh + gapSize) / (itemSize + gapSize))
+            const fillerElementsCount = node.getElementsByClassName('filler').length
+            const totalElementCount = node.childElementCount - fillerElementsCount
+
+            var missingElementsCount = rowElementCount - (totalElementCount % rowElementCount) - fillerElementsCount
+
+            console.log(missingElementsCount);
+
+
+            while (missingElementsCount > 0) {
+                const fillerDiv = document.createElement('div')
+                fillerDiv.style.width = `${itemSize}px`
+                fillerDiv.classList.add('filler')
+                node.appendChild(fillerDiv)
+
+                missingElementsCount--
+            }
+            while (missingElementsCount < 0) {
+                node.getElementsByClassName('filler')[0].remove()
+
+                missingElementsCount++
+            }
+
+        }
+
+        function applyFlexRowWidthFix() {
+            fixFlexRowWidth(document.getElementById("results-container"))
+        }
+
+        window.onload = function () { applyFlexRowWidthFix() }
+        window.addEventListener('resize', () => { applyFlexRowWidthFix() })
+    </script>
+</section>
+{% endblock body %}
