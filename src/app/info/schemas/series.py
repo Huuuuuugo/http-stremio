@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from ..models import LangChoices, MediaChoices
+from .episode import EpisodeBase
 
 
 class SeriesBase(BaseModel):
@@ -24,6 +25,8 @@ class SeriesBase(BaseModel):
     background: Optional[str] = None
 
     update_at: Optional[datetime] = None
+
+    episodes: list[EpisodeBase]
 
 
 class SeriesCreate(BaseModel):

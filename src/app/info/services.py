@@ -1,5 +1,6 @@
 import asyncio
 
+import aiohttp
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
@@ -7,6 +8,7 @@ from src.utils import imdb
 from .models import Movie, Series, Episode
 from .schemas.movie import MovieBase, MovieCreate
 from .schemas.series import SeriesBase, SeriesCreate
+from .schemas.episode import EpisodeBase, EpisodeCreate
 from .schemas.media import MediaRead
 
 
@@ -51,11 +53,11 @@ class SeriesService:
         await self.db.refresh(series)
         return SeriesBase.model_validate(series)
 
-    async def read(self, movie_data: MediaRead) -> SeriesBase:
+    async def read(self, series_data: MediaRead) -> SeriesBase:
         stmt = select(Series).where(
             and_(
-                Series.imdb_code == movie_data.imdb_code,
-                Series.lang == movie_data.lang,
+                Series.imdb_code == series_data.imdb_code,
+                Series.lang == series_data.lang,
             )
         )
         results = await self.db.execute(stmt)
@@ -69,8 +71,34 @@ class SeriesService:
 
 
 class EpisodeService:
+    class Exceptions:
+        class SeriesNotFound:
+            """No record found for a series with specified params"""
+
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    async def create(self, series_data: MediaRead, episode_data: EpisodeCreate) -> EpisodeBase:
+        stmt = select(Series).where(
+            and_(
+                Series.imdb_code == series_data.imdb_code,
+                Series.lang == series_data.lang,
+            )
+        )
+        results = await self.db.execute(stmt)
+        series = results.scalar()
+
+        if series is None:
+            msg = "No record found for a series with specified params"
+            raise self.Exceptions.SeriesNotFound(msg)
+
+        episode = Episode(**episode_data.model_dump())
+        self.db.add(episode)
+        episode.series = series
+        await self.db.commit()
+
+        await self.db.refresh(episode)
+        return EpisodeBase.model_validate(episode)
 
 
 class MediaService:
@@ -126,4 +154,23 @@ class MediaService:
                     )
                     series = await series_service.create(series_data)
 
+                    # TODO: update this to scrape data from imdb
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(f"https://cinemeta-live.strem.io/meta/series/{media_data.imdb_code}.json") as response:
+                            stremio_info = await response.json()
+
+                    # TODO: update this to create multiple episodes at once
+                    for episode in stremio_info["meta"]["videos"]:
+                        episode_data = EpisodeCreate(
+                            season=episode["season"],
+                            episode=episode["episode"],
+                            name=episode["title"],
+                            synopsis=episode["overview"],
+                            image=episode["thumbnail"],
+                        )
+
+                        episode_service = EpisodeService(self.db)
+                        await episode_service.create(media_data, episode_data)
+
+                    series = await series_service.read(media_data)
                     return series
