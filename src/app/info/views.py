@@ -1,37 +1,17 @@
 import aiohttp
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.utils import imdb
-from src.app import config
+from .schemas.media import MediaRead
+from .services import MediaService
 
 
-async def imdb_info(id: str, lang: str):
-    media = await imdb.get_media(id, lang)
-    info_dict = {
-        "id": media.id,
-        "title": media.title,
-        "year": media.year,
-        "end_year": media.end_year,
-        "type": media.type,
-        "synopsis": media.synopsis,
-        "rating": media.rating,
-        "poster": media.poster,
-        "logo": f"https://live.metahub.space/logo/medium/{id}/img",
-        "background": f"https://live.metahub.space/background/medium/{id}/img",
-    }
+async def imdb_info(media_data: MediaRead, db: AsyncSession):
+    media_service = MediaService(db)
+    media = await media_service.read_or_create(media_data)
 
-    # TODO: update this to use imdb data instead of stremio's
-    if info_dict["type"] == "series":
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://cinemeta-live.strem.io/meta/series/{id}.json") as response:
-                stremio_info = await response.json()
-
-        info_dict.update({"episodes": stremio_info["meta"]["videos"]})
-
-    else:
-        info_dict.pop("end_year")
-
-    return JSONResponse(info_dict)
+    return JSONResponse(media.model_dump(mode="json"))
 
 
 async def related_media(id: str, lang: str):

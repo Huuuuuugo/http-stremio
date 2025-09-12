@@ -1,11 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import types
 
-
-class Base(DeclarativeBase):
-    pass
+from src.app.db import Base
 
 
 class CacheMeta(Base):
