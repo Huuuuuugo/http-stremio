@@ -20,5 +20,5 @@ async def imdb_related_media_route(lang: str, id: str):
 
 
 @router.get("/{lang}/search/")
-async def serach_route(term: str, lang: str):
-    return await search(term, lang)
+async def serach_route(term: str, lang: str, db: AsyncSession = Depends(get_db)):
+    return await search(term, lang, db)

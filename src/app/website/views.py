@@ -235,7 +235,7 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str):
 
 
 async def search(term: str):
-    search_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/search/?term={term}")
+    search_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/search/?term={term}")
     async with aiohttp.ClientSession() as session:
         async with session.get(search_url) as res:
             results = await res.json()

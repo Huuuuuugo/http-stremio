@@ -1,4 +1,4 @@
-import aiohttp
+import asyncio
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,8 +22,14 @@ async def related_media(id: str, lang: str):
     return JSONResponse(related)
 
 
-async def search(term: str, lang: str):
-    results = await imdb.search(term, lang)
-    results = [result.to_json() for result in results]
+async def search(term: str, lang: str, db: AsyncSession):
+    media_service = MediaService(db)
+    results = await imdb.search(term, lang, ids_only=True)
+    objects = []
+    for id in results:
+        media_data = MediaRead(imdb_code=id, lang=lang)
+        media = await media_service.read_or_create(media_data)
+        objects.append(media)
 
+    results = [result.model_dump(mode="json") for result in objects]
     return JSONResponse(results)

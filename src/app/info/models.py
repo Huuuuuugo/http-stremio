@@ -35,7 +35,7 @@ class Movie(Base):
     year: Mapped[int] = mapped_column()
     media_type: Mapped[MediaChoices] = mapped_column()
     synopsis: Mapped[str] = mapped_column()
-    rating: Mapped[float] = mapped_column()
+    rating: Mapped[float] = mapped_column(nullable=True)
 
     poster: Mapped[str] = mapped_column(nullable=True)
     logo: Mapped[str] = mapped_column(nullable=True)
@@ -58,7 +58,7 @@ class Series(Base):
     end_year: Mapped[int] = mapped_column(nullable=True)
     media_type: Mapped[MediaChoices] = mapped_column()
     synopsis: Mapped[str] = mapped_column()
-    rating: Mapped[float] = mapped_column()
+    rating: Mapped[float] = mapped_column(nullable=True)
 
     episodes: Mapped[list["Episode"]] = relationship(back_populates="series", lazy="selectin")
 

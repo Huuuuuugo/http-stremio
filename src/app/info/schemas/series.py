@@ -18,7 +18,7 @@ class SeriesBase(BaseModel):
     end_year: Optional[int]
     media_type: MediaChoices
     synopsis: str
-    rating: float
+    rating: Optional[float]
 
     poster: Optional[str] = None
     logo: Optional[str] = None
@@ -38,7 +38,7 @@ class SeriesCreate(BaseModel):
     end_year: Optional[int]
     media_type: MediaChoices
     synopsis: str
-    rating: float
+    rating: Optional[float]
 
     poster: Optional[str] = None
     logo: Optional[str] = None

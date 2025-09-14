@@ -198,21 +198,34 @@ async def get_media(
     return IMDB(id, lang, html=imdb_html, cache_url=cache_url)
 
 
-async def search(term: str, lang: str, cache_url: str | None = None) -> list[IMDB]:
-    url = f"https://v3.sg.media-imdb.com/suggestion/x/{term}.json?includeVideos=1"
+async def search(term: str, lang: str, cache_url: str | None = None, ids_only: bool = False) -> list[IMDB] | list[str]:
+    url = f"https://v3.sg.media-imdb.com/suggestion/x/{term}.json"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as res:
             results = await res.json()
             results = results["d"]
 
-    tasks = []
-    for result in results:
-        id = result["id"]
-        if re.match(r"tt\d+", id):
-            tasks.append(get_media(id, lang, cache_url))
+    # return only the ids of the results
+    if ids_only:
+        results_list = []
+        for result in results:
+            id = result["id"]
+            if re.match(r"^tt\d+$", id):
+                if result["qid"] in ("movie", "tvSeries", "tvMiniSeries"):
+                    results_list.append(id)
 
-    results_list = await asyncio.gather(*tasks)
-    results_list = [result for result in results_list if result is not None]
+    # return IMDB objects of the results
+    else:
+        tasks = []
+        for result in results:
+            id = result["id"]
+            if re.match(r"^tt\d+$", id):
+                if result["qid"] in ("movie", "tvSeries", "tvMiniSeries"):
+                    tasks.append(get_media(id, lang, cache_url))
+
+        results_list = await asyncio.gather(*tasks)
+        results_list = [result for result in results_list if result is not None]
+
     return results_list
 
 

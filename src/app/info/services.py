@@ -182,19 +182,23 @@ class MediaService:
                             async with session.get(f"https://cinemeta-live.strem.io/meta/series/{media_data.imdb_code}.json") as response:
                                 stremio_info = await response.json()
 
-                        episode_data_list = []
-                        for episode in stremio_info["meta"]["videos"]:
-                            episode_data = EpisodeCreate(
-                                season=episode["season"],
-                                episode=episode["episode"],
-                                name=episode["title"],
-                                synopsis=episode["overview"],
-                                image=episode["thumbnail"],
-                            )
-                            episode_data_list.append(episode_data)
+                        try:
+                            episode_data_list = []
+                            for episode in stremio_info["meta"]["videos"]:
+                                episode_data = EpisodeCreate(
+                                    season=episode["season"],
+                                    episode=episode["episode"],
+                                    name=episode["title"],
+                                    synopsis=episode["overview"],
+                                    image=episode["thumbnail"],
+                                )
+                                episode_data_list.append(episode_data)
 
-                        episode_service = EpisodeService(self.db)
-                        await episode_service.batch_create(media_data, episode_data_list)
+                            episode_service = EpisodeService(self.db)
+                            await episode_service.batch_create(media_data, episode_data_list)
+
+                        except KeyError:
+                            pass
 
                         series = await series_service.read(media_data)
                         return series

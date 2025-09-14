@@ -16,7 +16,7 @@ class MovieBase(BaseModel):
     year: int
     media_type: MediaChoices
     synopsis: str
-    rating: float
+    rating: Optional[float]
 
     poster: Optional[str] = None
     logo: Optional[str] = None
@@ -33,7 +33,7 @@ class MovieCreate(BaseModel):
     year: int
     media_type: MediaChoices
     synopsis: str
-    rating: float
+    rating: Optional[float]
 
     poster: Optional[str] = None
     logo: Optional[str] = None
