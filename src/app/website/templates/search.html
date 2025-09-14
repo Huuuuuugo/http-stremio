@@ -5,14 +5,14 @@
     <h2 class="text-xl font-bold pb-4">RESULTADOS:</h2>
     <div id="results-container" class="flex flex-row overflow-scroll lg:flex-wrap gap-4 pb-8 justify-center">
         {% for media in results %}
-        <a href="/{{media.type}}/{{media.id}}/">
+        <a href="/{{media.type}}/{{media.imdb_code}}/">
             <div class="w-40 lg:w-56 bg-slate-800/90 h-full">
                 <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{media.poster}}"
                     alt="{{media.name}} poster">
                 <div class="p-4">
                     <span class="text-cyan-600">{% if media.type == 'series' %}SÉRIE{% else %}FILME{% endif
                         %}</span><br>
-                    <span>{{media.title}}</span>
+                    <span>{{media.name}}</span>
                 </div>
             </div>
         </a>

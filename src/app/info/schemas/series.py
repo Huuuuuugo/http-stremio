@@ -14,8 +14,8 @@ class SeriesBase(BaseModel):
     lang: LangChoices
 
     name: str
-    start_year: int
-    end_year: int
+    year: int
+    end_year: Optional[int]
     media_type: MediaChoices
     synopsis: str
     rating: float
@@ -34,8 +34,8 @@ class SeriesCreate(BaseModel):
     lang: LangChoices
 
     name: str
-    start_year: int
-    end_year: int
+    year: int
+    end_year: Optional[int]
     media_type: MediaChoices
     synopsis: str
     rating: float

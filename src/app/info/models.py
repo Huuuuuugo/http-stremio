@@ -54,8 +54,8 @@ class Series(Base):
     lang: Mapped[LangChoices] = mapped_column()
 
     name: Mapped[str] = mapped_column()
-    start_year: Mapped[int] = mapped_column()
-    end_year: Mapped[int] = mapped_column()
+    year: Mapped[int] = mapped_column()
+    end_year: Mapped[int] = mapped_column(nullable=True)
     media_type: Mapped[MediaChoices] = mapped_column()
     synopsis: Mapped[str] = mapped_column()
     rating: Mapped[float] = mapped_column()
