@@ -211,7 +211,7 @@ async def search(term: str, lang: str, cache_url: str | None = None, ids_only: b
         for result in results:
             id = result["id"]
             if re.match(r"^tt\d+$", id):
-                if result["qid"] in ("movie", "tvSeries", "tvMiniSeries"):
+                if result["qid"] in ("movie", "tvSeries", "tvMiniSeries") and "y" in result.keys():
                     results_list.append(id)
 
     # return IMDB objects of the results
@@ -220,28 +220,10 @@ async def search(term: str, lang: str, cache_url: str | None = None, ids_only: b
         for result in results:
             id = result["id"]
             if re.match(r"^tt\d+$", id):
-                if result["qid"] in ("movie", "tvSeries", "tvMiniSeries"):
+                if result["qid"] in ("movie", "tvSeries", "tvMiniSeries") and "y" in result.keys():
                     tasks.append(get_media(id, lang, cache_url))
 
         results_list = await asyncio.gather(*tasks)
         results_list = [result for result in results_list if result is not None]
 
     return results_list
-
-
-async def main():
-    tasks = [
-        get_media("tt1305826", cache_url="http://localhost:6132/proxy/cache/"),
-        get_media("tt32149847", cache_url="http://localhost:6132/proxy/cache/"),
-        get_media("tt23649128", cache_url="http://localhost:6132/proxy/cache/"),
-        get_media("tt31806037", cache_url="http://localhost:6132/proxy/cache/"),
-        get_media("tt11280740", cache_url="http://localhost:6132/proxy/cache/"),
-    ]
-
-    results = await asyncio.gather(*tasks)
-    for result in results:
-        print(result)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
