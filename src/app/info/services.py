@@ -1,33 +1,45 @@
 import asyncio
 
 import aiohttp
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
 from src.utils import imdb
-from src.utils.lock_manager import DynamicLockManager
 from .models import Movie, Series, Episode
-from .schemas.movie import MovieBase, MovieCreate
-from .schemas.series import SeriesBase, SeriesCreate
-from .schemas.episode import EpisodeBase, EpisodeCreate
+from .schemas.movie import MovieCreate
+from .schemas.series import SeriesCreate
+from .schemas.episode import EpisodeCreate
 from .schemas.media import MediaRead
-
-lock_manager = DynamicLockManager()
 
 
 class MovieService:
+    class Exceptions:
+        class MovieAlreadyExists(Exception):
+            """A record with the specified imdb code and language already existes"""
+
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.db_lock = asyncio.Lock()
 
-    async def create(self, movie_data: MovieCreate) -> MovieBase:
-        movie = Movie(**movie_data.model_dump())
-        self.db.add(movie)
-        await self.db.commit()
+    async def create(self, movie_data: MovieCreate) -> Movie:
+        try:
+            movie = Movie(**movie_data.model_dump())
+            self.db.add(movie)
 
-        await self.db.refresh(movie)
-        return MovieBase.model_validate(movie)
+            async with self.db_lock:
+                await self.db.flush()
 
-    async def read(self, movie_data: MediaRead) -> MovieBase:
+            return movie
+
+        except IntegrityError as e:
+            if "UNIQUE" in e.args[0]:
+                await self.db.rollback()
+                msg = "A record with the specified imdb code and language already existes"
+                raise self.Exceptions.MovieAlreadyExists(msg)
+            raise e
+
+    async def read(self, movie_data: MediaRead) -> Movie | None:
         stmt = select(Movie).where(
             and_(
                 Movie.imdb_code == movie_data.imdb_code,
@@ -37,26 +49,36 @@ class MovieService:
         results = await self.db.execute(stmt)
         movie = results.scalar()
 
-        if movie is None:
-            return None
-
-        await self.db.refresh(movie)
-        return MovieBase.model_validate(movie)
+        return movie
 
 
 class SeriesService:
+    class Exceptions:
+        class SeriesAlreadyExists(Exception):
+            """A record with the specified imdb code and language already existes"""
+
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.db_lock = asyncio.Lock()
 
-    async def create(self, series_data: SeriesCreate):
-        series = Series(**series_data.model_dump())
-        self.db.add(series)
-        await self.db.commit()
+    async def create(self, series_data: SeriesCreate) -> Series:
+        try:
+            series = Series(**series_data.model_dump())
+            self.db.add(series)
 
-        await self.db.refresh(series)
-        return SeriesBase.model_validate(series)
+            async with self.db_lock:
+                await self.db.flush()
 
-    async def read(self, series_data: MediaRead) -> SeriesBase:
+            return series
+
+        except IntegrityError as e:
+            await self.db.rollback()
+            if "UNIQUE" in e.args[0]:
+                msg = "A record with the specified imdb code and language already existes"
+                raise self.Exceptions.SeriesAlreadyExists(msg)
+            raise e
+
+    async def read(self, series_data: MediaRead) -> Series | None:
         stmt = select(Series).where(
             and_(
                 Series.imdb_code == series_data.imdb_code,
@@ -66,11 +88,7 @@ class SeriesService:
         results = await self.db.execute(stmt)
         series = results.scalar()
 
-        if series is None:
-            return None
-
-        await self.db.refresh(series)
-        return SeriesBase.model_validate(series)
+        return series
 
 
 class EpisodeService:
@@ -81,7 +99,7 @@ class EpisodeService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, series_data: MediaRead, episode_data: EpisodeCreate) -> None:
+    async def create(self, series_data: MediaRead, episode_data: EpisodeCreate) -> Episode:
         stmt = select(Series).where(
             and_(
                 Series.imdb_code == series_data.imdb_code,
@@ -95,42 +113,23 @@ class EpisodeService:
             msg = "No record found for a series with specified params"
             raise self.Exceptions.SeriesNotFound(msg)
 
+        return await self.create_with_series(series, episode_data)
+
+    async def create_with_series(self, series: Series, episode_data: EpisodeCreate) -> Episode:
         episode = Episode(**episode_data.model_dump())
-        self.db.add(episode)
         episode.series = series
-        await self.db.commit()
+        self.db.add(episode)
 
-        await self.db.refresh(episode)
-        return EpisodeBase.model_validate(episode)
-
-    async def batch_create(self, series_data: MediaRead, episode_data_list: list[EpisodeCreate]) -> None:
-        stmt = select(Series).where(
-            and_(
-                Series.imdb_code == series_data.imdb_code,
-                Series.lang == series_data.lang,
-            )
-        )
-        results = await self.db.execute(stmt)
-        series = results.scalar()
-
-        for episode_data in episode_data_list:
-            episode = Episode(**episode_data.model_dump())
-            self.db.add(episode)
-            episode.series = series
-
-        await self.db.commit()
-
-        await self.db.refresh(series)
-        return SeriesBase.model_validate(series)
+        return episode
 
 
 class MediaService:
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.db_lock = asyncio.Lock()
 
-    async def read_or_create(self, media_data: MediaRead) -> MovieBase | SeriesBase:
-        media_lock = await lock_manager.get_lock(f"{media_data.imdb_code}{media_data.lang.value}")
-        async with media_lock:
+    async def read_or_create(self, media_data: MediaRead) -> Movie | Series:
+        try:
             movie_service = MovieService(self.db)
             series_service = SeriesService(self.db)
             movie = await movie_service.read(media_data)
@@ -157,7 +156,8 @@ class MediaService:
                             logo=f"https://live.metahub.space/logo/medium/{media_data.imdb_code}/img",
                             background=f"https://live.metahub.space/background/medium/{media_data.imdb_code}/img",
                         )
-                        movie = await movie_service.create(movie_data)
+                        async with self.db_lock:
+                            movie = await movie_service.create(movie_data)
 
                         return movie
 
@@ -175,7 +175,8 @@ class MediaService:
                             logo=f"https://live.metahub.space/logo/medium/{media_data.imdb_code}/img",
                             background=f"https://live.metahub.space/background/medium/{media_data.imdb_code}/img",
                         )
-                        series = await series_service.create(series_data)
+                        async with self.db_lock:
+                            series = await series_service.create(series_data)
 
                         # TODO: update this to scrape data from imdb
                         async with aiohttp.ClientSession() as session:
@@ -183,7 +184,8 @@ class MediaService:
                                 stremio_info = await response.json()
 
                         try:
-                            episode_data_list = []
+                            episode_service = EpisodeService(self.db)
+                            tasks = []
                             for episode in stremio_info["meta"]["videos"]:
                                 episode_data = EpisodeCreate(
                                     season=episode["season"],
@@ -192,13 +194,19 @@ class MediaService:
                                     synopsis=episode["overview"],
                                     image=episode["thumbnail"],
                                 )
-                                episode_data_list.append(episode_data)
+                                tasks.append(episode_service.create_with_series(series, episode_data))
 
-                            episode_service = EpisodeService(self.db)
-                            await episode_service.batch_create(media_data, episode_data_list)
+                            await asyncio.gather(*tasks)
 
                         except KeyError:
                             pass
 
-                        series = await series_service.read(media_data)
                         return series
+
+        except movie_service.Exceptions.MovieAlreadyExists:
+            movie = await movie_service.read(media_data)
+            return movie
+
+        except series_service.Exceptions.SeriesAlreadyExists:
+            series = await series_service.read(media_data)
+            return series
