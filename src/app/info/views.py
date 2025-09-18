@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.utils import imdb
 from .models import Movie
 from .schemas.media import MediaRead
-from .schemas.movie import MovieBase
-from .schemas.series import SeriesBase
+from .schemas.movie import MovieBaseTranslated
+from .schemas.series import SeriesBaseTranslated
 from .services import MediaService
 
 
@@ -18,9 +18,9 @@ async def imdb_info(media_data: MediaRead, db: AsyncSession):
 
     await db.refresh(media)
     if isinstance(media, Movie):
-        result = MovieBase.model_validate(media).model_dump(mode="json")
+        result = MovieBaseTranslated.from_movie_model(media, media_data.lang).model_dump(mode="json")
     else:
-        result = SeriesBase.model_validate(media).model_dump(mode="json")
+        result = SeriesBaseTranslated.from_series_model(media, media_data.lang).model_dump(mode="json")
 
     return JSONResponse(result)
 
@@ -49,8 +49,8 @@ async def search(term: str, lang: str, db: AsyncSession):
     for model in models:
         await db.refresh(model)
         if isinstance(model, Movie):
-            results.append(MovieBase.model_validate(model).model_dump(mode="json"))
+            results.append(MovieBaseTranslated.from_movie_model(model, lang).model_dump(mode="json"))
         else:
-            results.append(SeriesBase.model_validate(model).model_dump(mode="json"))
+            results.append(SeriesBaseTranslated.from_series_model(model, lang).model_dump(mode="json"))
 
     return JSONResponse(results)

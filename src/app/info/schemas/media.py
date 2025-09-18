@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from ..models import LangChoices
+from ..types import LangChoices
 
 
 class MediaRead(BaseModel):

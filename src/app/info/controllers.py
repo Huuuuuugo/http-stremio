@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.dependencies import get_db
+from .types import LangChoices
 from .views import imdb_info, related_media, search
 from .schemas.media import MediaRead
 
@@ -15,10 +16,10 @@ async def imdb_info_route(media_data: MediaRead = Depends(), db: AsyncSession = 
 
 
 @router.get("/{lang}/imdb/related-media/")
-async def imdb_related_media_route(lang: str, id: str):
+async def imdb_related_media_route(lang: LangChoices, id: str):
     return await related_media(id, lang)
 
 
 @router.get("/{lang}/search/")
-async def serach_route(term: str, lang: str, db: AsyncSession = Depends(get_db)):
+async def serach_route(term: str, lang: LangChoices, db: AsyncSession = Depends(get_db)):
     return await search(term, lang, db)
