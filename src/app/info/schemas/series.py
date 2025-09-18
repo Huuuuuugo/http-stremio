@@ -17,7 +17,7 @@ class SeriesBase(BaseModel):
 
     year: int
     end_year: Optional[int]
-    media_type: MediaChoices
+    media_type: MediaChoices = MediaChoices("series")
     rating: Optional[float]
     translations: Optional[list["TranslatableSeriesInfoBase"]] = []
 
@@ -41,7 +41,7 @@ class SeriesBaseTranslated(BaseModel):
 
     year: int
     end_year: Optional[int]
-    media_type: MediaChoices
+    media_type: MediaChoices = MediaChoices("series")
     rating: Optional[float]
 
     logo: Optional[str] = None
@@ -73,7 +73,6 @@ class SeriesBaseTranslated(BaseModel):
             poster=translation.poster,
             year=series.year,
             end_year=series.end_year,
-            media_type=series.media_type,
             rating=series.rating,
             logo=series.logo,
             background=series.background,
@@ -86,7 +85,6 @@ class SeriesCreate(BaseModel):
 
     year: int
     end_year: Optional[int]
-    media_type: MediaChoices
     rating: Optional[float]
 
     logo: Optional[str] = None

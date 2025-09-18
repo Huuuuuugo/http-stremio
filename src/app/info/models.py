@@ -30,7 +30,6 @@ class Movie(Base):
     imdb_code: Mapped[str] = mapped_column()
 
     year: Mapped[int] = mapped_column()
-    media_type: Mapped[MediaChoices] = mapped_column()
     rating: Mapped[float] = mapped_column(nullable=True)
     translations: Mapped[list[TranslatableMovieInfo]] = relationship(back_populates="movie", lazy="selectin")
 
@@ -64,7 +63,6 @@ class Series(Base):
 
     year: Mapped[int] = mapped_column()
     end_year: Mapped[int] = mapped_column(nullable=True)
-    media_type: Mapped[MediaChoices] = mapped_column()
     rating: Mapped[float] = mapped_column(nullable=True)
     translations: Mapped[list[TranslatableSeriesInfo]] = relationship(back_populates="series", lazy="selectin")
 
