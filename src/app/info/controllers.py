@@ -15,9 +15,9 @@ async def imdb_info_route(media_data: MediaRead = Depends(), db: AsyncSession = 
     return await imdb_info(media_data, db)
 
 
-@router.get("/{lang}/imdb/related-media/")
-async def imdb_related_media_route(lang: LangChoices, id: str):
-    return await related_media(id, lang)
+@router.get("/{lang}/imdb/{imdb_code}/related-media/")
+async def imdb_related_media_route(media_data: MediaRead = Depends(), db: AsyncSession = Depends(get_db)):
+    return await related_media(media_data, db)
 
 
 @router.get("/{lang}/search/")

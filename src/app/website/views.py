@@ -86,70 +86,60 @@ async def redirect(url: str):
     return HTMLResponse(template.render(data))
 
 
-# TODO: clean up the commented out code to get related media after it's implemented
 async def movie_info(id: str):
     # mount url for getting the movie info
     info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/")
 
     # mount url for getting media related to the movie
-    # related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/related-media/?id={id}")
+    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/related-media/")
 
     # make requests and format responses
     async with aiohttp.ClientSession() as session:
         # make requests
         tasks = [
             session.get(info_url),
-            # session.get(related_url),
+            session.get(related_url),
         ]
-        # info, related = await asyncio.gather(*tasks)
-        info = await asyncio.gather(*tasks)
-        info = info[0]
+        info, related = await asyncio.gather(*tasks)
 
         # turn results into dicts
         tasks = [
             info.json(),
-            # related.json(),
+            related.json(),
         ]
-        # info, related = await asyncio.gather(*tasks)
-        info = await asyncio.gather(*tasks)
-        info = info[0]
+        info, related = await asyncio.gather(*tasks)
 
     # render template
     template = templates.get_template("movie.html")
     data = {
         "info": info,
-        # "related_media": related,
+        "related_media": related,
     }
     return HTMLResponse(template.render(data))
 
 
-# TODO: clean up the commented out code to get related media after it's implemented
 async def series_info(id: str, season: int):
     # mount url for getting the series info
     info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/")
 
     # mount url for getting media related to the movie
-    # related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/related-media/?id={id}")
+    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/related-media/")
 
     # make requests and format responses
     async with aiohttp.ClientSession() as session:
         # make requests
         tasks = [
             session.get(info_url),
-            # session.get(related_url),
+            session.get(related_url),
         ]
-        # info, related = await asyncio.gather(*tasks)
-        info = await asyncio.gather(*tasks)
-        info = info[0]
+        info, related = await asyncio.gather(*tasks)
 
         # turn results into dicts
         tasks = [
             info.json(),
-            # related.json(),
+            related.json(),
         ]
-        # info, related = await asyncio.gather(*tasks)
-        info = await asyncio.gather(*tasks)
-        info = info[0]
+        info, related = await asyncio.gather(*tasks)
 
     # get total season count
     season_count = 1
@@ -161,7 +151,7 @@ async def series_info(id: str, season: int):
     template = templates.get_template("series.html")
     data = {
         "info": info,
-        # "related_media": related,
+        "related_media": related,
         "current_season": season,
         "season_count": range(1, season_count + 1),
     }

@@ -25,12 +25,21 @@ async def imdb_info(media_data: MediaRead, db: AsyncSession):
     return JSONResponse(result)
 
 
-async def related_media(id: str, lang: str):
-    media = await imdb.get_media(id, lang)
-    related = await media.get_related_media()
-    related = [item.to_json() for item in related]
+async def related_media(media_data: MediaRead, db: AsyncSession):
+    media_service = MediaService(db)
+    related_media = await media_service.get_related(media_data)
 
-    return JSONResponse(related)
+    await db.commit()
+
+    results = []
+    for media in related_media:
+        await db.refresh(media)
+        if isinstance(media, Movie):
+            results.append(MovieBaseTranslated.from_movie_model(media, media_data.lang).model_dump(mode="json"))
+        else:
+            results.append(SeriesBaseTranslated.from_series_model(media, media_data.lang).model_dump(mode="json"))
+
+    return JSONResponse(results)
 
 
 async def search(term: str, lang: str, db: AsyncSession):

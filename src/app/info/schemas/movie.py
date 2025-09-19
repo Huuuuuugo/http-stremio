@@ -14,7 +14,7 @@ class MovieBase(BaseModel):
 
     imdb_code: str
 
-    year: int
+    year: Optional[int] = None
     media_type: MediaChoices = MediaChoices("movie")
     rating: Optional[float]
     translations: Optional[list["TranslatableMovieInfoBase"]] = []
@@ -35,7 +35,7 @@ class MovieBaseTranslated(BaseModel):
     synopsis: str
     poster: Optional[str] = None
 
-    year: int
+    year: Optional[int] = None
     media_type: MediaChoices = MediaChoices("movie")
     rating: Optional[float]
 
@@ -70,8 +70,8 @@ class MovieBaseTranslated(BaseModel):
 class MovieCreate(BaseModel):
     imdb_code: str
 
-    year: int
-    rating: Optional[float]
+    year: Optional[int] = None
+    rating: Optional[float] = None
 
     logo: Optional[str] = None
     background: Optional[str] = None

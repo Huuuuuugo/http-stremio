@@ -25,6 +25,17 @@ class MovieService:
         self.db = db
         self.db_lock = asyncio.Lock()
 
+    async def read(self, imdb_code: str) -> Movie | None:
+        stmt = select(Movie).where(
+            and_(
+                Movie.imdb_code == imdb_code,
+            )
+        )
+        results = await self.db.execute(stmt)
+        movie = results.scalar()
+
+        return movie
+
     async def create(self, movie_data: MovieCreate) -> Movie:
         try:
             movie = Movie(**movie_data.model_dump())
@@ -61,17 +72,6 @@ class MovieService:
                 raise self.Exceptions.MovieTranslationAlreadyExists(msg)
             raise e
 
-    async def read(self, imdb_code: str) -> Movie | None:
-        stmt = select(Movie).where(
-            and_(
-                Movie.imdb_code == imdb_code,
-            )
-        )
-        results = await self.db.execute(stmt)
-        movie = results.scalar()
-
-        return movie
-
 
 class SeriesService:
     class Exceptions:
@@ -84,6 +84,17 @@ class SeriesService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.db_lock = asyncio.Lock()
+
+    async def read(self, imdb_code: str) -> Series | None:
+        stmt = select(Series).where(
+            and_(
+                Series.imdb_code == imdb_code,
+            )
+        )
+        results = await self.db.execute(stmt)
+        series = results.scalar()
+
+        return series
 
     async def create(self, series_data: SeriesCreate) -> Series:
         try:
@@ -120,17 +131,6 @@ class SeriesService:
                 msg = "A record with the specified translation language already exists for this media"
                 raise self.Exceptions.SeriesTranslationAlreadyExists(msg)
             raise e
-
-    async def read(self, imdb_code: str) -> Series | None:
-        stmt = select(Series).where(
-            and_(
-                Series.imdb_code == imdb_code,
-            )
-        )
-        results = await self.db.execute(stmt)
-        series = results.scalar()
-
-        return series
 
 
 class EpisodeService:
@@ -314,3 +314,30 @@ class MediaService:
         ):
             series = await series_service.read(media_data.imdb_code)
             return series
+
+    async def get_related(self, media_data: MediaRead):
+        media = await self.read_or_create(media_data)
+
+        await self.db.refresh(media)
+        related_media = media.related_movies + media.related_series
+
+        if len(related_media) <= 0:
+            media_info = await imdb.get_media(media_data.imdb_code, media_data.lang.value)
+            related_ids = await media_info.get_related_media(True)
+
+            tasks = []
+            for id in related_ids:
+                media_data = MediaRead(imdb_code=id, lang=media_data.lang)
+                tasks.append(self.read_or_create(media_data))
+            related_media = await asyncio.gather(*tasks)
+
+            for model in related_media:
+                if isinstance(model, Movie):
+                    media.related_movies.append(model)
+                else:
+                    media.related_series.append(model)
+
+            async with self.db_lock:
+                await self.db.flush([*related_media, media])
+
+        return related_media

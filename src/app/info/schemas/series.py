@@ -15,7 +15,7 @@ class SeriesBase(BaseModel):
 
     imdb_code: str
 
-    year: int
+    year: Optional[int]
     end_year: Optional[int]
     media_type: MediaChoices = MediaChoices("series")
     rating: Optional[float]
@@ -39,7 +39,7 @@ class SeriesBaseTranslated(BaseModel):
     synopsis: str
     poster: Optional[str] = None
 
-    year: int
+    year: Optional[int]
     end_year: Optional[int]
     media_type: MediaChoices = MediaChoices("series")
     rating: Optional[float]
@@ -83,7 +83,7 @@ class SeriesBaseTranslated(BaseModel):
 class SeriesCreate(BaseModel):
     imdb_code: str
 
-    year: int
+    year: Optional[int]
     end_year: Optional[int]
     rating: Optional[float]
 
