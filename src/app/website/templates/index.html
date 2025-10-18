@@ -7,13 +7,13 @@
         <h2 class="text-xl font-bold pb-4">SÉRIES:</h2>
         <div id="series-container" class="flex flex-wrap gap-4 pb-8 justify-center">
             {% for series in selected_series %}
-            <a href="/series/{{series.id}}">
+            <a href="/series/{{series.imdb_code}}">
                 <div class="w-56 bg-slate-800/90 h-full">
                     <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{series.poster}}"
-                        alt="{{series.title}}">
+                        alt="{{series.name}}">
                     <div class="p-4">
                         <span class="text-cyan-600">SÉRIE</span><br>
-                        <span>{{series.title}}</span>
+                        <span>{{series.name}}</span>
                     </div>
                 </div>
             </a>
@@ -25,13 +25,13 @@
         <h2 class="text-xl font-bold pb-4">FILMES:</h2>
         <div id="movies-container" class="flex flex-wrap gap-4 pb-8 justify-center">
             {% for movie in selected_movies %}
-            <a href="/movie/{{movie.id}}">
+            <a href="/movie/{{movie.imdb_code}}">
                 <div class="w-56 bg-slate-800 h-full">
                     <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{movie.poster}}"
-                        alt="{{movie.title}}">
+                        alt="{{movie.name}}">
                     <div class="p-4">
                         <span class="text-cyan-600">FILME</span><br>
-                        <span>{{movie.title}}</span>
+                        <span>{{movie.name}}</span>
                     </div>
                 </div>
             </a>

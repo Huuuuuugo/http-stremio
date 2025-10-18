@@ -18,16 +18,16 @@
     <section class="flex flex-col mx-8 h-[92dvh] justify-center">
         <div class="flex flex-row pt-16 h-full w-full">
             <img class="min-w-96 hidden lg:block rounded-xl" src="/proxy/cache/?url={{info.poster}}"
-                alt="{{info.title}} poster">
+                alt="{{info.name}} poster">
 
             <div class="flex flex-col px-8 py-16 overflow-auto w-4/5 h-[80%]">
                 <div class="flex lg:items-center lg:justify-center pb-4">
-                    <img class="max-w-96 max-h-40" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
+                    <img class="max-w-96 max-h-40" src="/proxy/cache/?url={{info.logo}}" alt="{{info.name}} logo">
                 </div>
 
                 <div class="flex flex-col justify-between h-full p-8">
                     <div>
-                        <h1 class="text-2xl font-bold">{{info.title}}</h1>
+                        <h1 class="text-2xl font-bold">{{info.name}}</h1>
                         <p class="text-lg">{{info.synopsis}}</p>
                         <br>
                         <div class="flex flex-row justify-center items-center pb-4 text-lg font-bold">
@@ -53,7 +53,7 @@
                         <!-- season selector -->
                         <div class="flex flex-row gap-2 py-8 text-center overflow-scroll px-4">
                             {% for season in season_count %}
-                            <a href="/series/{{info.id}}/{{season}}/#episodes">
+                            <a href="/series/{{info.imdb_code}}/{{season}}/#episodes">
                                 <div class="p-2 rounded-lg text-lg w-36
                         {% if season == current_season %}bg-fuchsia-900{% else %}bg-fuchsia-700{% endif %}">
                                     Temporada {{season}}
@@ -76,17 +76,18 @@
         <div class="flex flex-col gap-4 mx-8 pb-8">
             {% for episode in info.episodes %}
             {% if episode.season == current_season %}
-            <a href="/redirect/?url=/watch/series/{{info.id}}/{{current_season}}/{{episode.number}}/" target="_blank">
+            <a href="/redirect/?url=/watch/series/{{info.imdb_code}}/{{current_season}}/{{episode.episode}}/"
+                target="_blank">
                 <div class="flex flex-col lg:flex-row lg:h-64 bg-slate-800/90 rounded-xl"
-                    id="ep-{{current_season}}x{{episode.number}}">
+                    id="ep-{{current_season}}x{{episode.episode}}">
                     <img class="h-full aspect-[16/9] object-cover" loading="lazy"
-                        src="/proxy/cache/?url={{episode.thumbnail}}" alt="{{episode.title}}"
+                        src="/proxy/cache/?url={{episode.image}}" alt="{{episode.name}}"
                         onerror="this.onerror=null;this.src='/proxy/cache/?url={{background}}';">
 
                     <div class="p-4 text-lg w-4/5">
-                        <span class="text-cyan-600">S{{current_season}} · E{{episode.number}}</span><br>
-                        <span>{{episode.title}}</span><br><br>
-                        <span class="text-base">{{episode.overview}}</span>
+                        <span class="text-cyan-600">S{{current_season}} · E{{episode.episode}}</span><br>
+                        <span>{{episode.name}}</span><br><br>
+                        <span class="text-base">{{episode.synopsis}}</span>
                     </div>
                 </div>
             </a>
@@ -100,14 +101,14 @@
         <h2 class="text-xl font-bold pb-8 pt-16">FILMES E SÉRIES SEMELHANTES:</h2>
         <div id="related-media-container" class="flex flex-row overflow-scroll lg:flex-wrap gap-4 pb-8 justify-center">
             {% for media in related_media %}
-            <a href="/{{media.type}}/{{media.id}}/">
+            <a href="/{{media.media_type}}/{{media.imdb_code}}/">
                 <div class="w-40 lg:w-56 bg-slate-800/90 h-full">
                     <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{media.poster}}"
                         alt="{{media.name}} poster">
                     <div class="p-4">
                         <span class="text-cyan-600">{% if media.type == 'series' %}SÉRIE{% else %}FILME{% endif
                             %}</span><br>
-                        <span>{{media.title}}</span>
+                        <span>{{media.name}}</span>
                     </div>
                 </div>
             </a>

@@ -16,16 +16,16 @@
     <section class="flex flex-col mx-8 h-[92dvh] justify-center">
         <div class="flex flex-row pt-16 h-full w-full">
             <img class="min-w-96 hidden lg:block rounded-xl" src="/proxy/cache/?url={{info.poster}}"
-                alt="{{info.title}} poster">
+                alt="{{info.name}} poster">
 
             <div class="flex flex-col px-8 py-16 w-4/5 h-[80%]">
                 <div class="flex lg:items-center lg:justify-center pb-4">
-                    <img class="max-w-96 max-h-40" src="/proxy/cache/?url={{info.logo}}" alt="{{info.title}} logo">
+                    <img class="max-w-96 max-h-40" src="/proxy/cache/?url={{info.logo}}" alt="{{info.name}} logo">
                 </div>
 
                 <div class="flex flex-col justify-between h-full p-8">
                     <div>
-                        <h1 class="text-2xl font-bold">{{info.title}}</h1>
+                        <h1 class="text-2xl font-bold">{{info.name}}</h1>
                         <p class="text-lg">{{info.synopsis}}</p>
                         <br>
                         <div class="flex flex-row justify-center items-center pb-4 text-lg font-bold">
@@ -50,7 +50,7 @@
                         </div>
                     </div>
 
-                    <a href="/redirect/?url=/watch/movie/{{info.id}}" target="_blank">
+                    <a href="/redirect/?url=/watch/movie/{{info.imdb_code}}" target="_blank">
                         <div class="p-2 rounded-lg text-2xl mx-8 h-15 bg-fuchsia-700 text-center">
                             Assistir
                         </div>
@@ -66,14 +66,14 @@
         <h2 class="text-xl font-bold pb-4">FILMES E SÉRIES SEMELHANTES:</h2>
         <div id="related-media-container" class="flex overflow-scroll flex-wrap gap-4 pb-8 justify-center">
             {% for media in related_media %}
-            <a href="/{{media.type}}/{{media.id}}/">
+            <a href="/{{media.media_type}}/{{media.imdb_code}}/">
                 <div class="w-40 lg:w-56 bg-slate-800/90 h-full">
                     <img class="w-full aspect-[2/3] object-cover" src="/proxy/cache/?url={{media.poster}}"
                         alt="{{media.name}} poster">
                     <div class="p-4">
                         <span class="text-cyan-600">{% if media.type == 'series' %}SÉRIE{% else %}FILME{% endif
                             %}</span><br>
-                        <span>{{media.title}}</span>
+                        <span>{{media.name}}</span>
                     </div>
                 </div>
             </a>

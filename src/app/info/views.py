@@ -1,49 +1,65 @@
-import aiohttp
+import asyncio
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.utils import imdb
-from src.app import config
+from .models import Movie
+from .schemas.media import MediaRead
+from .schemas.movie import MovieBaseTranslated
+from .schemas.series import SeriesBaseTranslated
+from .services import MediaService
 
 
-async def imdb_info(id: str, lang: str):
-    media = await imdb.get_media(id, lang)
-    info_dict = {
-        "id": media.id,
-        "title": media.title,
-        "year": media.year,
-        "end_year": media.end_year,
-        "type": media.type,
-        "synopsis": media.synopsis,
-        "rating": media.rating,
-        "poster": media.poster,
-        "logo": f"https://live.metahub.space/logo/medium/{id}/img",
-        "background": f"https://live.metahub.space/background/medium/{id}/img",
-    }
+async def imdb_info(media_data: MediaRead, db: AsyncSession):
+    media_service = MediaService(db)
+    media = await media_service.read_or_create(media_data)
 
-    # TODO: update this to use imdb data instead of stremio's
-    if info_dict["type"] == "series":
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://cinemeta-live.strem.io/meta/series/{id}.json") as response:
-                stremio_info = await response.json()
+    await db.commit()
 
-        info_dict.update({"episodes": stremio_info["meta"]["videos"]})
-
+    await db.refresh(media)
+    if isinstance(media, Movie):
+        result = MovieBaseTranslated.from_movie_model(media, media_data.lang).model_dump(mode="json")
     else:
-        info_dict.pop("end_year")
+        result = SeriesBaseTranslated.from_series_model(media, media_data.lang).model_dump(mode="json")
 
-    return JSONResponse(info_dict)
-
-
-async def related_media(id: str, lang: str):
-    media = await imdb.get_media(id, lang)
-    related = await media.get_related_media()
-    related = [item.to_json() for item in related]
-
-    return JSONResponse(related)
+    return JSONResponse(result)
 
 
-async def search(term: str, lang: str):
-    results = await imdb.search(term, lang)
-    results = [result.to_json() for result in results]
+async def related_media(media_data: MediaRead, db: AsyncSession):
+    media_service = MediaService(db)
+    related_media = await media_service.get_related(media_data)
+
+    await db.commit()
+
+    results = []
+    for media in related_media:
+        await db.refresh(media)
+        if isinstance(media, Movie):
+            results.append(MovieBaseTranslated.from_movie_model(media, media_data.lang).model_dump(mode="json"))
+        else:
+            results.append(SeriesBaseTranslated.from_series_model(media, media_data.lang).model_dump(mode="json"))
+
+    return JSONResponse(results)
+
+
+async def search(term: str, lang: str, db: AsyncSession):
+    media_service = MediaService(db)
+    results = await imdb.search(term, lang, ids_only=True)
+    tasks = []
+    for id in results:
+        media_data = MediaRead(imdb_code=id, lang=lang)
+        tasks.append(media_service.read_or_create(media_data))
+
+    models = await asyncio.gather(*tasks)
+
+    await db.commit()
+
+    results = []
+    for model in models:
+        await db.refresh(model)
+        if isinstance(model, Movie):
+            results.append(MovieBaseTranslated.from_movie_model(model, lang).model_dump(mode="json"))
+        else:
+            results.append(SeriesBaseTranslated.from_series_model(model, lang).model_dump(mode="json"))
 
     return JSONResponse(results)

@@ -48,18 +48,12 @@ async def index():
         # request info about each selected media
         movie_tasks = []
         for movie_id in selected_media["movies"]:
-            url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/?id={movie_id}")
-            if config.CACHE_URL:
-                query = urlencode({"url": url})
-                url = urljoin(config.CACHE_URL, f"?{query}")
+            url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{movie_id}/")
             movie_tasks.append(session.get(url))
 
         series_tasks = []
         for series_id in selected_media["series"]:
-            url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/?id={series_id}")
-            if config.CACHE_URL:
-                query = urlencode({"url": url})
-                url = urljoin(config.CACHE_URL, f"?{query}")
+            url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{series_id}/")
             series_tasks.append(session.get(url))
 
         tasks = [
@@ -94,16 +88,10 @@ async def redirect(url: str):
 
 async def movie_info(id: str):
     # mount url for getting the movie info
-    info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/?id={id}")
-    if config.CACHE_URL:
-        query = urlencode({"url": info_url})
-        info_url = urljoin(config.CACHE_URL, f"?{query}")
+    info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/")
 
     # mount url for getting media related to the movie
-    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/related-media/?id={id}")
-    if config.CACHE_URL:
-        query = urlencode({"url": related_url})
-        related_url = urljoin(config.CACHE_URL, f"?{query}")
+    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/related-media/")
 
     # make requests and format responses
     async with aiohttp.ClientSession() as session:
@@ -132,16 +120,10 @@ async def movie_info(id: str):
 
 async def series_info(id: str, season: int):
     # mount url for getting the series info
-    info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/?id={id}")
-    if config.CACHE_URL:
-        query = urlencode({"url": info_url})
-        info_url = urljoin(config.CACHE_URL, f"?{query}")
+    info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/")
 
     # mount url for getting media related to the movie
-    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/related-media/?id={id}")
-    if config.CACHE_URL:
-        query = urlencode({"url": related_url})
-        related_url = urljoin(config.CACHE_URL, f"?{query}")
+    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/related-media/")
 
     # make requests and format responses
     async with aiohttp.ClientSession() as session:
@@ -179,8 +161,8 @@ async def series_info(id: str, season: int):
 async def watch_movie(id: str, proxy_url: str):
     # run scrapers
     tasks = [
-        pobreflix.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL),
         redecanais.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL),
+        pobreflix.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL),
     ]
     results = await asyncio.gather(*tasks)
     streams = []
@@ -201,27 +183,28 @@ async def watch_movie(id: str, proxy_url: str):
 
 async def watch_series(id: str, season: int, episode: int, proxy_url: str):
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://v3-cinemeta.strem.io/meta/series/{id}.json") as response:
+        info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/")
+        async with session.get(info_url) as response:
             series_data = await response.json()
 
     # get url of the next episode
     next_url = f"/watch/series/{id}/1/1"
     found_cur_ep = False
-    for ep_dict in series_data["meta"]["videos"]:
+    for ep_dict in series_data["episodes"]:
         # check if the current episode has been found on the list of episodes
-        if ep_dict["season"] == season and ep_dict["number"] == episode:
+        if ep_dict["season"] == season and ep_dict["episode"] == episode:
             found_cur_ep = True
             continue
 
         # get the url right after the current episode
         if found_cur_ep:
-            next_url = f"/watch/series/{id}/{ep_dict['season']}/{ep_dict['number']}"
+            next_url = f"/watch/series/{id}/{ep_dict['season']}/{ep_dict['episode']}"
             break
 
     # run scrapers
     tasks = [
-        pobreflix.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL),
         redecanais.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL),
+        pobreflix.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL),
     ]
     results = await asyncio.gather(*tasks)
     streams = []
@@ -243,9 +226,6 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str):
 
 async def search(term: str):
     search_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/search/?term={term}")
-    if config.CACHE_URL:
-        query = urlencode({"url": search_url})
-        search_url = urljoin(config.CACHE_URL, f"?{query}")
     async with aiohttp.ClientSession() as session:
         async with session.get(search_url) as res:
             results = await res.json()
