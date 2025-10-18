@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 import aiohttp
 
 from src.utils.stremio import StremioStream
-from .decoders import decode_from_text, decode_videojs
+from .decoders import decode_from_text, decode_videojs, decode_xor_from_text
 from .exceptions import *
 
 REDECANAIS_URL = "https://redecanais.ee/"
@@ -25,11 +25,12 @@ class PlayerStream:
 
         async with aiohttp.ClientSession() as session:
             async with session.get(video_page_url) as video_page_response:
-                text = await video_page_response.text()
-                decoded_html = decode_from_text(text, 1)
                 if not (200 <= video_page_response.status <= 299):
                     msg = f"Unexpected status code when requesting video page '{video_page_response.status}'"
                     raise UnexpectedStatusCode(msg)
+
+                text = await video_page_response.text()
+                decoded_html = decode_from_text(text, 1)
 
                 video_page_html = BeautifulSoup(decoded_html, "html.parser")
 
@@ -58,11 +59,12 @@ class PlayerStream:
 
         async with aiohttp.ClientSession() as session:
             async with session.get(video_player_url) as video_player_response:
-                text = await video_player_response.text()
-                decoded_html = decode_from_text(text, 0)
                 if not (200 <= video_player_response.status <= 299):
                     msg = f"Unexpected status code when requesting video page '{video_player_response.status}'"
                     raise UnexpectedStatusCode(msg)
+
+                text = await video_player_response.text()
+                decoded_html = decode_xor_from_text(text)
 
                 html = BeautifulSoup(decoded_html, "html.parser")
 
@@ -98,6 +100,10 @@ class PlayerStream:
 
         async with aiohttp.ClientSession() as session:
             async with session.get(videojs_url, headers=videojs_headers) as videojs_response:
+                if not (200 <= videojs_response.status <= 299):
+                    msg = f"Unexpected status code when requesting video page '{videojs_response.status}'"
+                    raise UnexpectedStatusCode(msg)
+
                 text = await videojs_response.text()
                 decoded_text = decode_videojs(text)
 
