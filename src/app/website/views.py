@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
 from src.app import config
-from src.scrapers import redecanais, pobreflix
+from src.scrapers import pobreflix
 from .constants import TEMPLATES_DIR, STATIC_DIR
 
 templates = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
@@ -161,8 +161,7 @@ async def series_info(id: str, season: int):
 async def watch_movie(id: str, proxy_url: str):
     # run scrapers
     tasks = [
-        redecanais.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL),
-        pobreflix.movie_streams(id, proxy_url=proxy_url, cache_url=config.CACHE_URL),
+        pobreflix.movie_streams(id, proxy_url=proxy_url),
     ]
     results = await asyncio.gather(*tasks)
     streams = []
@@ -203,8 +202,7 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str):
 
     # run scrapers
     tasks = [
-        redecanais.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL),
-        pobreflix.series_stream(id, season, episode, proxy_url=proxy_url, cache_url=config.CACHE_URL),
+        pobreflix.series_stream(id, season, episode, proxy_url=proxy_url),
     ]
     results = await asyncio.gather(*tasks)
     streams = []
