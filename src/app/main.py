@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import website, proxy, stremio, info
 from .db import init_db
-from .test_routes import router as tests_router
 from .proxy.tasks import repeat_tasks
 
 
@@ -31,4 +30,3 @@ app.include_router(website.router)
 app.include_router(proxy.router)
 app.include_router(stremio.router)
 app.include_router(info.router)
-app.include_router(tests_router)

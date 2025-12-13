@@ -1,25 +1,23 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.app.dependencies import get_db
-from .types import LangChoices
 from .views import imdb_info, related_media, search
-from .schemas.media import MediaRead
+from src.scrapers.imdb.schemas.media import MediaRead
+from src.scrapers.imdb.types import LangChoices
 
 
 router = APIRouter(prefix="/info", tags=["info"])
 
 
 @router.get("/{lang}/imdb/{imdb_code}/")
-async def imdb_info_route(media_data: MediaRead = Depends(), db: AsyncSession = Depends(get_db)):
-    return await imdb_info(media_data, db)
+async def imdb_info_route(media_data: MediaRead = Depends()):
+    return await imdb_info(media_data)
 
 
 @router.get("/{lang}/imdb/{imdb_code}/related-media/")
-async def imdb_related_media_route(media_data: MediaRead = Depends(), db: AsyncSession = Depends(get_db)):
-    return await related_media(media_data, db)
+async def imdb_related_media_route(media_data: MediaRead = Depends()):
+    return await related_media(media_data)
 
 
 @router.get("/{lang}/search/")
-async def serach_route(term: str, lang: LangChoices, db: AsyncSession = Depends(get_db)):
-    return await search(term, lang, db)
+async def serach_route(term: str, lang: LangChoices):
+    return await search(term, lang.value)
