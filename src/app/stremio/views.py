@@ -2,6 +2,7 @@ import asyncio
 
 from fastapi.responses import JSONResponse
 
+from ... import static_sources
 from src.scrapers import pobreflix
 from src.app import config
 from . import constants
@@ -15,6 +16,7 @@ async def movie_stream(id: str, proxy_url: None | str = None):
     # run scrapers
     tasks = [
         pobreflix.movie_streams(id, proxy_url=proxy_url),
+        static_sources.movie_streams(id, proxy_url=proxy_url),
     ]
     results = await asyncio.gather(*tasks)
     streams = []
@@ -28,6 +30,7 @@ async def series_stream(id: str, season: int, episode: int, proxy_url: None | st
     # run scrapers
     tasks = [
         pobreflix.series_stream(id, season, episode, proxy_url=proxy_url),
+        static_sources.series_stream(id, season, episode, proxy_url=proxy_url),
     ]
     results = await asyncio.gather(*tasks)
     streams = []

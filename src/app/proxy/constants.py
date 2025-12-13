@@ -1,6 +1,7 @@
 import os
 
-from src.scrapers import pobreflix
+from ...scrapers import pobreflix
+from ... import static_sources
 
 # conjunction of raw hosts strings defined here and on each scraper
 ALLOWED_HOSTS = [
@@ -12,11 +13,13 @@ ALLOWED_HOSTS = [
     "v3-cinemeta.strem.io",
     "episodes.metahub.space",
     *pobreflix.ALLOWED_HOSTS,
+    *static_sources.ALLOWED_HOSTS,
 ]
 
 # list of regular expressions that match urls used by scrapers
 ALLOWED_REGEXS = [
     *pobreflix.ALLOWED_REGEXS,
+    *static_sources.ALLOWED_REGEXS,
 ]
 
 

@@ -8,8 +8,8 @@ from jinja2 import Environment, FileSystemLoader
 from fastapi import HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
-from src.app import config
-from src.scrapers import pobreflix, imdb
+from ...scrapers import pobreflix, imdb
+from ... import static_sources
 from .constants import TEMPLATES_DIR, STATIC_DIR
 
 templates = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
@@ -114,6 +114,7 @@ async def watch_movie(id: str, proxy_url: str):
     # run scrapers
     tasks = [
         pobreflix.movie_streams(id, proxy_url=proxy_url),
+        static_sources.movie_streams(id, proxy_url=proxy_url),
     ]
     results = await asyncio.gather(*tasks)
     streams = []
@@ -152,6 +153,7 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str):
     # run scrapers
     tasks = [
         pobreflix.series_stream(id, season, episode, proxy_url=proxy_url),
+        static_sources.series_stream(id, season, episode, proxy_url=proxy_url),
     ]
     results = await asyncio.gather(*tasks)
     streams = []
