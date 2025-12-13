@@ -13,9 +13,9 @@ ALLOWED_HOSTS = [
 ALLOWED_REGEXS = []
 
 
-async def movie_streams(imdb_id: str, proxy_url: str | None = None, cache_url: None | str = None):
+async def movie_streams(imdb_id: str, proxy_url: str | None = None):
     try:
-        pages = await get_media_pages(imdb_id, cache_url)
+        pages = await get_media_pages(imdb_id)
 
         streams = StremioStreamManager()
         if "dub" in pages.keys():
@@ -62,9 +62,9 @@ async def movie_streams(imdb_id: str, proxy_url: str | None = None, cache_url: N
         return []
 
 
-async def series_stream(imdb_id: str, season: int, episode: int, proxy_url: str | None = None, cache_url: None | str = None):
+async def series_stream(imdb_id: str, season: int, episode: int, proxy_url: str | None = None):
     try:
-        pages = await get_media_pages(imdb_id, cache_url)
+        pages = await get_media_pages(imdb_id)
 
         streams = StremioStreamManager()
         if "dub" in pages.keys():

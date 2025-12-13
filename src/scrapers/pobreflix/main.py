@@ -1,26 +1,24 @@
 # general functions and classes needed to scrape the site
 
 from urllib.parse import urljoin, urlencode
+from typing import Literal, Any
 
+from pydantic import BaseModel, field_validator
 from bs4 import BeautifulSoup
 import aiohttp
 
-from src.utils import imdb
+from .. import imdb
 from .exceptions import *
 
 
 BASE_URL = "https://pobreflixtv.bid/"
 
 
-class PobreflixResult:
-    def __init__(self, title, year, audio, url):
-        self.title = title
-        self.year = year
-        self.audio = audio.lower()
-        self.url = url
-
-    def __str__(self):
-        return f"<title: {self.title} | year: {self.year} | audio: {self.audio} | url: {self.url}>"
+class PobreflixResult(BaseModel):
+    title: str
+    year: int
+    audio: Literal["dub", "leg"]
+    url: str
 
 
 async def search(search_term: str) -> list[PobreflixResult]:
@@ -43,33 +41,36 @@ async def search(search_term: str) -> list[PobreflixResult]:
     result_list = []
     for result in results:
         # get relevant elements
-        result: BeautifulSoup
         caption_element = result.find("div", {"class": "caption"})
-        a_element = caption_element.find("a")
+        a_element = result.find("a")
 
         # extract data
-        title = a_element.text.strip()
+        title = caption_element.find("h3").text.strip()
         url = a_element.get("href")
-        year = int(caption_element.find("span", {"class": "y"}).text.strip())
-        audio = result.find("div", {"class": "TopLeft"}).find("span", {"class": "capa-audio"}).text.strip()
+        year = int(caption_element.find("div", {"class": "y"}).text.strip())
+        audio = result.find("div", {"class": "TopLeft"}).find("div", {"class": "capa-audio"}).text.strip()
 
         # create result object
-        result_obj = PobreflixResult(title, year, audio, url)
+        result_obj = PobreflixResult(
+            title=title,
+            year=year,
+            audio=audio.lower(),
+            url=url,
+        )
         result_list.append(result_obj)
 
     return result_list
 
 
-async def get_media_pages(imdb_id: str, cache_url: None | str = None) -> dict:
+async def get_media_pages(imdb_id: str) -> dict:
     # get media info on imdb
-    info = await imdb.get_media(imdb_id, "pt", cache_url)
+    info = await imdb.get_media(imdb_id, "pt")
 
     # search for media with matching title and release year
-    search_results = await search(info.title)
+    search_results = await search(info.name)
     pages_list = []
     for result in search_results:
-        result: PobreflixResult
-        if result.title == info.title and result.year == info.year and result.audio:
+        if result.title == info.name and result.year == info.year and result.audio:
             pages_list.append(result)
 
     if pages_list:
