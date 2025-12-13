@@ -1,17 +1,15 @@
-from urllib.parse import urljoin, urlencode
 import asyncio
 import json
 import os
 import re
 
-import aiohttp
 import aiofiles
 from jinja2 import Environment, FileSystemLoader
 from fastapi import HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
 from src.app import config
-from src.scrapers import pobreflix
+from src.scrapers import pobreflix, imdb
 from .constants import TEMPLATES_DIR, STATIC_DIR
 
 templates = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
@@ -22,7 +20,6 @@ async def static(subfolder: str, file: str, user_agent: str = ""):
     # if the browser is too old, redirect to a compatible version of the css file
     if subfolder == "css" and file == "output.css":
         matches = re.findall(r"((?:Chrome)|(?:Firefox))/(\d+)\.", user_agent)
-        print(matches)
         if matches:
             browser, version = matches[0]
             match browser:
@@ -44,32 +41,19 @@ async def index():
     async with aiofiles.open("./selected-media.json", "r", encoding="utf8") as f:
         selected_media = json.loads(await f.read())
 
-    async with aiohttp.ClientSession() as session:
-        # request info about each selected media
-        movie_tasks = []
-        for movie_id in selected_media["movies"]:
-            url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{movie_id}/")
-            movie_tasks.append(session.get(url))
+    movie_tasks = []
+    for movie_id in selected_media["movies"]:
+        movie_tasks.append(imdb.get_media(movie_id, "pt"))
 
-        series_tasks = []
-        for series_id in selected_media["series"]:
-            url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{series_id}/")
-            series_tasks.append(session.get(url))
+    series_tasks = []
+    for series_id in selected_media["series"]:
+        series_tasks.append(imdb.get_media(series_id, "pt"))
 
-        tasks = [
-            asyncio.gather(*movie_tasks),
-            asyncio.gather(*series_tasks),
-        ]
-        movie_tasks, series_tasks = await asyncio.gather(*tasks)
-
-        # turn every response into a dict
-        movie_tasks = [task.json() for task in movie_tasks]
-        series_tasks = [task.json() for task in series_tasks]
-        tasks = [
-            asyncio.gather(*movie_tasks),
-            asyncio.gather(*series_tasks),
-        ]
-        selected_movies, selected_series = await asyncio.gather(*tasks)
+    tasks = [
+        asyncio.gather(*movie_tasks),
+        asyncio.gather(*series_tasks),
+    ]
+    selected_movies, selected_series = await asyncio.gather(*tasks)
 
     # render template
     data = {
@@ -87,27 +71,11 @@ async def redirect(url: str):
 
 
 async def movie_info(id: str):
-    # mount url for getting the movie info
-    info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/")
-
-    # mount url for getting media related to the movie
-    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/related-media/")
-
-    # make requests and format responses
-    async with aiohttp.ClientSession() as session:
-        # make requests
-        tasks = [
-            session.get(info_url),
-            session.get(related_url),
-        ]
-        info, related = await asyncio.gather(*tasks)
-
-        # turn results into dicts
-        tasks = [
-            info.json(),
-            related.json(),
-        ]
-        info, related = await asyncio.gather(*tasks)
+    tasks = [
+        imdb.get_media(id, "pt"),
+        imdb.get_related_media(id, "pt"),
+    ]
+    info, related = await asyncio.gather(*tasks)
 
     # render template
     template = templates.get_template("movie.html")
@@ -119,33 +87,17 @@ async def movie_info(id: str):
 
 
 async def series_info(id: str, season: int):
-    # mount url for getting the series info
-    info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/")
-
-    # mount url for getting media related to the movie
-    related_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/related-media/")
-
-    # make requests and format responses
-    async with aiohttp.ClientSession() as session:
-        # make requests
-        tasks = [
-            session.get(info_url),
-            session.get(related_url),
-        ]
-        info, related = await asyncio.gather(*tasks)
-
-        # turn results into dicts
-        tasks = [
-            info.json(),
-            related.json(),
-        ]
-        info, related = await asyncio.gather(*tasks)
+    tasks = [
+        imdb.get_media(id, "pt"),
+        imdb.get_related_media(id, "pt"),
+    ]
+    info, related = await asyncio.gather(*tasks)
 
     # get total season count
     season_count = 1
-    for episode in info["episodes"]:
-        if episode["season"] > season_count:
-            season_count = episode["season"]
+    for episode in info.episodes:
+        if episode.season > season_count:
+            season_count = episode.season
 
     # render template
     template = templates.get_template("series.html")
@@ -181,23 +133,20 @@ async def watch_movie(id: str, proxy_url: str):
 
 
 async def watch_series(id: str, season: int, episode: int, proxy_url: str):
-    async with aiohttp.ClientSession() as session:
-        info_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/imdb/{id}/")
-        async with session.get(info_url) as response:
-            series_data = await response.json()
+    series_data = await imdb.get_media(id, "pt")
 
     # get url of the next episode
     next_url = f"/watch/series/{id}/1/1"
     found_cur_ep = False
-    for ep_dict in series_data["episodes"]:
+    for episode_data in series_data.episodes:  # type: ignore
         # check if the current episode has been found on the list of episodes
-        if ep_dict["season"] == season and ep_dict["episode"] == episode:
+        if episode_data.season == season and episode_data.episode == episode:
             found_cur_ep = True
             continue
 
         # get the url right after the current episode
         if found_cur_ep:
-            next_url = f"/watch/series/{id}/{ep_dict['season']}/{ep_dict['episode']}"
+            next_url = f"/watch/series/{id}/{episode_data.season}/{episode_data.episode}"
             break
 
     # run scrapers
@@ -223,10 +172,7 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str):
 
 
 async def search(term: str):
-    search_url = urljoin(config.LOCAL_ADDRESS, f"/info/pt/search/?term={term}")
-    async with aiohttp.ClientSession() as session:
-        async with session.get(search_url) as res:
-            results = await res.json()
+    results = await imdb.search(term, "pt")
 
     template = templates.get_template("search.html")
     data = {"results": results}
