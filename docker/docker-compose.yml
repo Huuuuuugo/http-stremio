@@ -8,8 +8,7 @@ services:
       dockerfile: docker/Dockerfile
     ports:
       - "6222:6222" 
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ../certs:/app/certs:ro
     restart: unless-stopped
-    command: uv run manage.py runserver http --address 0.0.0.0:6222
+    command: uv run manage.py runserver https

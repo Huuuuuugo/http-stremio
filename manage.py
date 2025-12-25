@@ -29,8 +29,8 @@ def runserver(protocol: str, address: str, disable_cache: bool):
                 app,
                 host=host,
                 port=int(port),
-                ssl_certfile="localhost.crt",
-                ssl_keyfile="localhost.key",
+                ssl_certfile="certs/localhost.crt",
+                ssl_keyfile="certs/localhost.key",
             )
 
 

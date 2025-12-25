@@ -3,6 +3,7 @@ FROM ghcr.io/astral-sh/uv:python3.13-alpine
 # Install the project into `/app`
 WORKDIR /app
 
+RUN mkdir /certs
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
 
