@@ -52,15 +52,16 @@ class StreamCache:
         stream_map = {}
         # invalidate expired and invalid sources before test them
         for item in cached_items:
-            if item.source in invalid_sources:
+            if item.stream.source in invalid_sources:
                 continue
             if (
-                time.time() + 7200 >= item.expiry
+                time.time() + 7200
+                >= item.expiry  # TODO: choose a better margin but for tests thats ok
             ):  # prevent the link from becoming invalid during streaming
                 invalid_sources.add(item.stream.source)
                 continue
-            if item.duration and (item.expiry - self.expiry_margin) < (
-                time.time() + item.duration
+            if item.stream.duration and (item.expiry - self.expiry_margin) < (
+                time.time() + item.stream.duration
             ):  # prevent the invalid more precisely
                 invalid_sources.add(item.stream.source)
                 continue
