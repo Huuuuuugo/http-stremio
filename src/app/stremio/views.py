@@ -15,9 +15,10 @@ async def addon_manifest():
 
 async def movie_stream(id: str, proxy_url: None | str = None):
     cached_streams, invalid_sources = await stream_cache.get(id)
-
+   
     if cached_streams:
         stream_manager = StremioStreamManager()
+        print("Responding using cache")
         for stream in cached_streams:
             stream_manager.append(stream)
         return JSONResponse(stream_manager.to_dict())
@@ -30,8 +31,10 @@ async def movie_stream(id: str, proxy_url: None | str = None):
 
     stream_manager = StremioStreamManager()
     for result in results:
-        stream_manager.extend(result)
+        for stream in result:
+            stream_manager.append(stream)
 
+    print("Responding using Scraper")
     stream_cache.set(id, stream_manager.streams)
     return JSONResponse(stream_manager.to_dict())
 
@@ -42,9 +45,9 @@ async def series_stream(
     episode_id = f"{id}:{season}:{episode}"
 
     cached_streams, invalid_sources = await stream_cache.get(episode_id)
-
     if cached_streams:
         stream_manager = StremioStreamManager()
+        print("Responding using cache")
         for stream in cached_streams:
             stream_manager.append(stream)
         return JSONResponse(stream_manager.to_dict())
@@ -57,8 +60,10 @@ async def series_stream(
     results = await asyncio.gather(*tasks)
 
     stream_manager = StremioStreamManager()
+    print("Responding using Scraper")
     for result in results:
-        stream_manager.extend(result)
+        for stream in result:
+            stream_manager.append(stream)
 
     # cache the result
     stream_cache.set(episode_id, stream_manager.streams)

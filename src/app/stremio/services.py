@@ -5,7 +5,8 @@ import aiohttp
 from src.utils.stremio import StremioStream
 from urllib.parse import urlparse, parse_qs
 
-_CachedStream = namedtuple("CachedStream", ["stream", "expiry"])
+
+BLOCKED_SOURCES = ["static_sources"]
 
 
 class StreamCache:
@@ -52,23 +53,23 @@ class StreamCache:
         stream_map = {}
         # invalidate expired and invalid sources before test them
         for item in cached_items:
-            if item.stream.source in invalid_sources:
+            if item.source in invalid_sources:
                 continue
             if (
-                time.time() + 7200
+                time.time() + 600
                 >= item.expiry  # TODO: choose a better margin but for tests thats ok
             ):  # prevent the link from becoming invalid during streaming
-                invalid_sources.add(item.stream.source)
+                invalid_sources.add(item.source)
                 continue
-            if item.stream.duration and (item.expiry - self.expiry_margin) < (
-                time.time() + item.stream.duration
+            if item.duration and (item.expiry - self.expiry_margin) < (
+                time.time() + item.duration
             ):  # prevent the invalid more precisely
-                invalid_sources.add(item.stream.source)
+                invalid_sources.add(item.source)
                 continue
 
-            task = asyncio.create_task(self._test(item.stream.url, item.stream.headers))
+            task = asyncio.create_task(self._test(item.url, item.headers))
             tasks.append(task)
-            stream_map[task] = item.stream
+            stream_map[task] = item
 
         # test the validated streams
         test_results = await asyncio.gather(*tasks)
@@ -94,11 +95,13 @@ class StreamCache:
 
         new_cached_streams = []
         for stream in value:
-            ttl = getattr(stream, "ttl")
-            if ttl is None:
-                ttl = 3600
-            expiry = time.time() + ttl
-            new_cached_streams.append(_CachedStream(stream=stream, expiry=expiry))
+            print(stream.expiry)
+            if stream.expiry is None:
+                stream.expiry = int(time.time()+3600)
+            print(stream.expiry)
+            source = getattr(stream, "source")
+            if source not in BLOCKED_SOURCES:
+                new_cached_streams.append(stream)
 
         if not new_cached_streams:
             return
