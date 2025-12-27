@@ -50,9 +50,7 @@ async def _get_streams(
                 else:
                     final_url = stream_data.url
                 query_params = parse_qs(urlparse(stream_data.url).query)
-                print(query_params)
                 expires_value = query_params.get("expires", [None])[0]
-                print(expires_value)
                 if expires_value and str(expires_value).isdigit():
                     expiry = int(expires_value)
                 else:

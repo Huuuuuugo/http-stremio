@@ -95,10 +95,8 @@ class StreamCache:
 
         new_cached_streams = []
         for stream in value:
-            print(stream.expiry)
             if stream.expiry is None:
                 stream.expiry = int(time.time()+3600)
-            print(stream.expiry)
             source = getattr(stream, "source")
             if source not in BLOCKED_SOURCES:
                 new_cached_streams.append(stream)
