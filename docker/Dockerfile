@@ -1,5 +1,16 @@
-FROM ghcr.io/astral-sh/uv:python3.13-alpine
+# --- Build frontend ---
+FROM node:alpine AS css-builder
+WORKDIR /build
 
+# copy build artifacts
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY ../src ./src/
+
+RUN npm run build
+
+# --- Final image ---
+FROM ghcr.io/astral-sh/uv:python3.13-alpine AS final
 # Install the project into `/app`
 WORKDIR /app
 
@@ -22,7 +33,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project
 
 
-COPY .. /app
+COPY src/ ./src/
+COPY manage.py uv.lock pyproject.toml selected-media.json ./
+
+COPY --from=css-builder /build/src/app/website/static/css/output.css /src/app/website/static/css/output.css
+
+# remove input.css
+RUN rm -f /src/app/website/static/css/input.css
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
