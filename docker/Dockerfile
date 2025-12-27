@@ -47,3 +47,5 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # non root user
 RUN adduser -D appuser && chown -R appuser:appuser /app
 USER appuser
+
+CMD ["uv", "run", "manage.py", "runserver"]

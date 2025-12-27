@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     working_dir: /app
@@ -11,4 +9,5 @@ services:
     volumes:
       - ../certs:/app/certs:ro
     restart: unless-stopped
-    command: uv run manage.py runserver https
+    env_file:
+      - ../.env
