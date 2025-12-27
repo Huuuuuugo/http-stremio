@@ -1,9 +1,9 @@
 # general functions and classes needed to scrape the site
 
 from urllib.parse import urljoin, urlencode
-from typing import Literal, Any
+from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 from bs4 import BeautifulSoup
 import aiohttp
 
@@ -62,7 +62,7 @@ async def search(search_term: str) -> list[PobreflixResult]:
     return result_list
 
 
-async def get_media_pages(imdb_id: str) -> dict:
+async def get_media_pages(imdb_id: str) -> list[PobreflixResult]:
     # get media info on imdb
     info = await imdb.get_media(imdb_id, "pt")
 
@@ -74,12 +74,7 @@ async def get_media_pages(imdb_id: str) -> dict:
             pages_list.append(result)
 
     if pages_list:
-        pages_dict = {}
-        for page in pages_list:
-            pages_dict.update({page.audio: page.url})
-
-        return pages_dict
-
+        return pages_list
     else:
         msg = f"No media found for code '{imdb_id}'"
         raise MediaNotFound(msg)
