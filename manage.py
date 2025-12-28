@@ -1,7 +1,9 @@
 import argparse
 import asyncio
-
+import os
 import uvicorn
+from dotenv import load_dotenv
+load_dotenv()
 
 
 def runserver(protocol: str, address: str, disable_cache: bool):
@@ -70,10 +72,9 @@ def main():
         help="Starts the http/https server.",
     )
     runserver_parser.add_argument(
-        "protocol",
-        choices=["http", "https"],
-        default="http",
-        help="The protocol used used by the server.",
+    "--protocol",
+    choices=["http", "https"],
+    help="Protocol used by the server (overrides APP_PROTOCOL).",
     )
     runserver_parser.add_argument(
         "--address",
@@ -99,7 +100,21 @@ def main():
     args = parser.parse_args()
     match args.command:
         case "runserver":
-            runserver(args.protocol, args.address, args.disable_cache)
+            protocol = (
+                args.protocol
+                or os.getenv("APP_PROTOCOL", "http")
+            )
+
+            address = (
+                args.address
+                or os.getenv("APP_ADDRESS", "0.0.0.0:6222")
+            )
+
+            disable_cache = (
+                args.disable_cache
+                or os.getenv("DISABLE_CACHE", "false").lower() == "true"
+            )
+            runserver(protocol, address, disable_cache)
 
         case "clearcache":
             asyncio.run(clearcache())
