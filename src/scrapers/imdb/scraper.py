@@ -6,6 +6,9 @@ import re
 
 from bs4 import BeautifulSoup
 import aiohttp
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class IMDB:
@@ -154,7 +157,7 @@ async def get_media(
     id: str,
     lang: typing.Literal["en", "fr", "de", "es", "pt", "ja", "zh"] = "en",
 ) -> IMDB:
-    print(id)
+    logging.debug(id)
     # list of languages accepted by imdb
     accept_languages = {
         "en": "en-US,en;q=0.9",  # US English

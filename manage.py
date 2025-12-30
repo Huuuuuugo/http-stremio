@@ -7,8 +7,9 @@ import uvicorn
 def runserver(protocol: str, address: str, disable_cache: bool):
     from urllib.parse import urljoin
 
-    from src.app.main import app
     from src.app import config
+    from src.app.main import app
+    from src.utils.logger_config import LogConfig
 
     host, port = address.split(":")
     server_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
@@ -22,6 +23,7 @@ def runserver(protocol: str, address: str, disable_cache: bool):
                 app,
                 host=host,
                 port=int(port),
+                log_config=LogConfig().model_dump(),
             )
 
         case "https":
@@ -29,17 +31,18 @@ def runserver(protocol: str, address: str, disable_cache: bool):
                 app,
                 host=host,
                 port=int(port),
-                ssl_certfile="localhost.crt",
-                ssl_keyfile="localhost.key",
+                ssl_certfile="certs/localhost.crt",
+                ssl_keyfile="certs/localhost.key",
+                log_config=LogConfig().model_dump(),
             )
 
 
 async def clearcache():
     from sqlalchemy import select
 
-    from src.app.proxy.services import CacheMetaService
-    from src.app.proxy.models import CacheMeta
     from src.app.db import SessionLocal
+    from src.app.proxy.models import CacheMeta
+    from src.app.proxy.services import CacheMetaService
 
     async with SessionLocal() as db:
         stmt = select(CacheMeta)

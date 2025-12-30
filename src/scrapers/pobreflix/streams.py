@@ -1,8 +1,8 @@
 # functions to get stremio formated streams for movies and series
 
-from urllib.parse import urlencode
-
-from src.utils.stremio import StremioStream, StremioStreamManager
+from urllib.parse import parse_qs, urlencode, urlparse
+import logging
+from src.utils.stremio import StremioStream
 from .main import get_media_pages, get_sources, get_epiosode_url
 from .sources import streamtape_stream
 
@@ -12,103 +12,71 @@ ALLOWED_HOSTS = [
 
 ALLOWED_REGEXS = []
 
+SOURCE_NAME = "pobreflix"
 
-async def movie_streams(imdb_id: str, proxy_url: str | None = None):
+logger = logging.getLogger(__name__)
+
+
+async def _get_streams(
+    imdb_id: str,
+    season: int | None = None,
+    episode: int | None = None,
+    proxy_url: str | None = None,
+) -> StremioStream:
+    streams = []
     try:
         pages = await get_media_pages(imdb_id)
-
-        streams = StremioStreamManager()
-        if "dub" in pages.keys():
-            # get list of links to every avaliable source
-            dub_sources = await get_sources(f"{pages['dub']}?area=online")
-
-            # extract stream links from every source
-            try:
-                stream = await streamtape_stream(dub_sources["streamtape"])
-
-                if proxy_url is None:
-                    stream = StremioStream(stream.url, headers=stream.headers, name="Pobreflix", title="Streamtape (DUB)")
-                    streams.append(stream)
+        for page in pages:
+            audio_type = getattr(page, "audio", None)
+            page_url = getattr(page, "url", None)
+            if audio_type in ["dub", "leg"] and page_url:
+                if season is not None and episode is not None:
+                    target_url = await get_epiosode_url(page_url, season, episode)
                 else:
-                    query = urlencode({"url": stream.url, "headers": stream.headers})
-                    stream = StremioStream(f"{proxy_url}?{query}", name="Pobreflix", title="Streamtape (DUB)")
-                    streams.append(stream)
-            except:
-                pass
+                    target_url = f"{page_url}?area=online"
 
-        if "leg" in pages.keys():
-            # get list of links to every avaliable source
-            leg_sources = await get_sources(f"{pages['leg']}?area=online")
+                if not target_url:
+                    continue
 
-            # extract stream links from every source
-            try:
-                stream = await streamtape_stream(leg_sources["streamtape"])
+                sources = await get_sources(target_url)
+                if "streamtape" not in sources:
+                    continue
 
-                if proxy_url is None:
-                    stream = StremioStream(stream.url, headers=stream.headers, name="Pobreflix", title="Streamtape (LEG)")
-                    streams.append(stream)
+                stream_data = await streamtape_stream(sources["streamtape"])
+
+                if proxy_url:
+                    query = urlencode({"url": stream_data.url, "headers": stream_data.headers})
+                    final_url = f"{proxy_url}?{query}"
                 else:
-                    query = urlencode({"url": stream.url, "headers": stream.headers})
-                    stream = StremioStream(f"{proxy_url}?{query}", name="Pobreflix", title="Streamtape (LEG)")
-                    streams.append(stream)
-            except:
-                pass
-
-        # format as a stremio json
-        return streams.to_list()
-
+                    final_url = stream_data.url
+                query_params = parse_qs(urlparse(stream_data.url).query)
+                expires_value = query_params.get("expires", [None])[0]
+                if expires_value and str(expires_value).isdigit():
+                    expiry = int(expires_value)
+                else:
+                    expiry = None
+                streams.append(
+                    StremioStream(
+                        url=final_url,
+                        headers=stream_data.headers,
+                        name="Pobreflix",
+                        title=f"Streamtape ({audio_type.upper()})",
+                        source=SOURCE_NAME,
+                        expiry=expiry,
+                    )
+                )
     except Exception as e:
-        print(f"Exception raised in pobreflix scraper! {e.__class__.__name__}: {e}")
-        return []
+        logger.error(f"Exception raised in pobreflix scraper! {e.__class__.__name__}: {e}")
+        pass
+
+    return streams
 
 
-async def series_stream(imdb_id: str, season: int, episode: int, proxy_url: str | None = None):
-    try:
-        pages = await get_media_pages(imdb_id)
+async def movie_streams(imdb_id: str, proxy_url: str | None = None) -> list[StremioStream]:
+    streams = await _get_streams(imdb_id, proxy_url=proxy_url)
+    return streams
 
-        streams = StremioStreamManager()
-        if "dub" in pages.keys():
-            # get list of links to every avaliable source
-            episode_url = await get_epiosode_url(pages["dub"], season, episode)
-            if episode_url is not None:
-                dub_sources = await get_sources(episode_url)
 
-                # extract stream links from every source
-                try:
-                    stream = await streamtape_stream(dub_sources["streamtape"])
-
-                    if proxy_url is None:
-                        stream = StremioStream(stream.url, stream.headers, name="Pobreflix", title="Streamtape (DUB)")
-                        streams.append(stream)
-                    else:
-                        query = urlencode({"url": stream.url, "headers": stream.headers})
-                        stream = StremioStream(f"{proxy_url}?{query}", name="Pobreflix", title="Streamtape (DUB)")
-                        streams.append(stream)
-                except:
-                    pass
-
-        if "leg" in pages.keys():
-            # get list of links to every avaliable source
-            episode_url = await get_epiosode_url(pages["leg"], season, episode)
-            if episode_url is not None:
-                leg_sources = await get_sources(episode_url)
-
-                # extract stream links from every source
-                try:
-                    stream = await streamtape_stream(leg_sources["streamtape"])
-
-                    if proxy_url is None:
-                        stream = StremioStream(stream.url, stream.headers, name="Pobreflix", title="Streamtape (LEG)")
-                        streams.append(stream)
-                    else:
-                        query = urlencode({"url": stream.url, "headers": stream.headers})
-                        stream = StremioStream(f"{proxy_url}?{query}", name="Pobreflix", title="Streamtape (LEG)")
-                        streams.append(stream)
-                except:
-                    pass
-
-        return streams.to_list()
-
-    except Exception as e:
-        print(f"Exception raised in pobreflix scraper! {e.__class__.__name__}: {e}")
-        return []
+async def series_stream(imdb_id: str, season: int, episode: int, proxy_url: str | None = None) -> list[StremioStream]:
+    streams = await _get_streams(imdb_id, season, episode, proxy_url)
+    return streams

@@ -3,12 +3,14 @@ from datetime import timedelta
 from pathlib import Path
 import asyncio
 import re
-
+import logging
 import aiohttp
 from fastapi import Request
 from fastapi.exceptions import HTTPException
 
 from . import constants
+
+logger = logging.getLogger(__name__)
 
 
 def check_allowed_urls(url: str):
@@ -41,12 +43,12 @@ async def yield_chunks(request: Request, session: aiohttp.ClientSession, respons
 
     # triggered when client disconnects mid-stream
     except asyncio.CancelledError:
-        print("Stream cancelled by client!")
+        logger.info("Stream cancelled by client!")
         raise HTTPException(status_code=499)
 
     # handle host errors
     except Exception as e:
-        print(f"Streaming erro: {e}")
+        logger.error(f"Streaming erro: {e}")
         raise HTTPException(status_code=502, detail="Upstream CDN error")
 
     # cleanup
