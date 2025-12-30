@@ -6,12 +6,14 @@ import re
 from pydantic import BaseModel, field_validator
 from bs4 import BeautifulSoup
 import aiohttp
-
+import logging
 from .. import imdb
 from .exceptions import *
 
 
 BASE_URL = "https://pobreflixtv.bid/"
+
+logger = logging.getLogger(__name__)
 
 
 class PobreflixResult(BaseModel):
@@ -63,7 +65,7 @@ async def search(search_term: str) -> list[PobreflixResult]:
             )
             result_list.append(result_obj)
         except Exception as e:
-            print(f"Exception in parsing '{title if 'title' in locals() else 'Desconhecido'}': {e}")
+            logger.error(f"Exception in parsing '{title if 'title' in locals() else 'Desconhecido'}': {e}")
             continue
 
     return result_list
