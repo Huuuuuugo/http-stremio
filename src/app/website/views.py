@@ -123,7 +123,7 @@ async def watch_movie(id: str, proxy_url: str):
 
     # get stream or return 404 error
     try:
-        stream = streams[0]["url"]
+        stream = streams[0].url
     except IndexError:
         raise HTTPException(404, "Stream not found")
 
@@ -162,7 +162,7 @@ async def watch_series(id: str, season: int, episode: int, proxy_url: str):
 
     # get stream or redirect to next episode if none is found
     try:
-        stream = streams[0]["url"]
+        stream = streams[0].url
     except IndexError:
         print("Episode stream not found, redirecting to next episode...")
         return RedirectResponse(next_url)
