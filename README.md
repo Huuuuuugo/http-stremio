@@ -11,7 +11,7 @@ Além dos scrapers, a ferramenta conta com um servidor próprio, desenvolvido em
 # Instalação
 ## Stremio (Windows - localhost)
 ### 1. Baixe a ferramenta openssl
-Algumas fontes não funcionam com o proxy padrão do Stremio e precisam ser acessadas por um proxy customizado que, nesse caso, será hospedado no localhost. Porém, o Stremio exige uma conexão HTTPS para streams até mesmo no localhost, o que significa que o servidor local precisa de um certificado SLL confiável, o qual pode ser facilmente criado usando a ferramenta `openssl`.
+Algumas fontes não funcionam com o proxy padrão do Stremio e precisam ser acessadas por um proxy customizado que, nesse caso, será hospedado no localhost. Porém, o Stremio exige uma conexão HTTPS para streams até mesmo no localhost, o que significa que o servidor local precisa de um certificado SSL confiável, o qual pode ser facilmente criado usando a ferramenta `openssl`.
 #### Chocolatey
 Execute o seguinte comando para instalar o openssl usando Chocolatey:
 ```console
@@ -25,7 +25,7 @@ Navegue ao diretório onde o arquivo `ssl.conf` está localizado e execute o seg
 ```console
 openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config ssl.conf -extensions v3_req
 ```
-Isso criará os arquivos `localhost.crt` e `localhost.key`.
+Isso criará os arquivos `localhost.crt` e `localhost.key`,**Garanta que ambos estejam na pasta certs no diretorio raiz do projeto.**.
 
 ### 3. Adicione o certificado à lista de certificados confiáveis do Windows
 1. No gerenciador de arquivos, navegue ao diretório onde os arquivos da etapa anterior foram criados e clique com o botão esquerdo duas vezes no arquivo `localhost.crt`
@@ -53,7 +53,7 @@ pip install uv
 Escolha alguma das várias opções de instalação disponíveis no [site da ferramenta](https://docs.astral.sh/uv/getting-started/installation/#installation-methods).
 
 ### 5. Instale as dependências do projeto
-Navegue ao diretório raiz do projeo e execute o seguinte comando para instalar as dependências usando a ferramenta uv:
+Navegue ao diretório raiz do projeto e execute o seguinte comando para instalar as dependências usando a ferramenta uv:
 ```console
 uv sync
 ```

@@ -178,3 +178,12 @@ cython_debug/
 .gitignore
 *.md
 tests/
+
+# Frontend build artifacts
+node_modules/
+
+# Cache Folder
+/src/app/proxy/cache/*
+
+# Cerficates
+certs/
