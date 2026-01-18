@@ -2,16 +2,18 @@
 
 from urllib.parse import urljoin, urlencode
 from typing import Literal, Any
-
+import re
 from pydantic import BaseModel, field_validator
 from bs4 import BeautifulSoup
 import aiohttp
-
+import logging
 from .. import imdb
 from .exceptions import *
 
 
 BASE_URL = "https://pobreflixtv.bid/"
+
+logger = logging.getLogger(__name__)
 
 
 class PobreflixResult(BaseModel):
@@ -40,29 +42,36 @@ async def search(search_term: str) -> list[PobreflixResult]:
     results = page_html.find_all("div", {"id": "collview"})
     result_list = []
     for result in results:
-        # get relevant elements
-        caption_element = result.find("div", {"class": "caption"})
-        a_element = result.find("a")
+        try:
+            # get relevant elements
+            caption_element = result.find("div", {"class": "caption"})
+            a_element = result.find("a")
 
-        # extract data
-        title = caption_element.find("h3").text.strip()
-        url = a_element.get("href")
-        year = int(caption_element.find("div", {"class": "y"}).text.strip())
-        audio = result.find("div", {"class": "TopLeft"}).find("div", {"class": "capa-audio"}).text.strip()
-
-        # create result object
-        result_obj = PobreflixResult(
-            title=title,
-            year=year,
-            audio=audio.lower(),
-            url=url,
-        )
-        result_list.append(result_obj)
+            # extract data
+            title = caption_element.find("h3").text.strip()
+            url = a_element.get("href")
+            year = int(caption_element.find("div", {"class": "y"}).text.strip())
+            raw_audio = result.find("div", {"class": "TopLeft"}).find("div", {"class": "capa-audio"}).text.strip().lower()
+            match = re.search(r"(dub|leg)", raw_audio)
+            if not match:
+                continue
+            audio = match.group(1)
+            # create result object
+            result_obj = PobreflixResult(
+                title=title,
+                year=year,
+                audio=audio,
+                url=url,
+            )
+            result_list.append(result_obj)
+        except Exception as e:
+            logger.error(f"Exception in parsing '{title if 'title' in locals() else 'Desconhecido'}': {e}")
+            continue
 
     return result_list
 
 
-async def get_media_pages(imdb_id: str) -> dict:
+async def get_media_pages(imdb_id: str) -> list[PobreflixResult]:
     # get media info on imdb
     info = await imdb.get_media(imdb_id, "pt")
 
@@ -74,12 +83,7 @@ async def get_media_pages(imdb_id: str) -> dict:
             pages_list.append(result)
 
     if pages_list:
-        pages_dict = {}
-        for page in pages_list:
-            pages_dict.update({page.audio: page.url})
-
-        return pages_dict
-
+        return pages_list
     else:
         msg = f"No media found for code '{imdb_id}'"
         raise MediaNotFound(msg)

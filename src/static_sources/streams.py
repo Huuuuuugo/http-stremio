@@ -1,20 +1,24 @@
 from urllib.parse import urlencode
 
-from src.utils.stremio import StremioStream, StremioStreamManager
+from src.utils.stremio import StremioStream
 from .schemas import MovieSourceRead, SeriesSourceRead
 from .services import StaticSourceService
 from .db import SessionLocal
+import logging
 
+logger = logging.getLogger(__name__)
 ALLOWED_HOSTS = [
     "archive.org",
 ]
 
 ALLOWED_REGEXS = []
 
+SOURCE_NAME = "static_sources"
 
-async def movie_streams(imdb_id: str, proxy_url: str | None = None):
+
+async def movie_streams(imdb_id: str, proxy_url: str | None = None) -> list[StremioStream]:
     try:
-        streams = StremioStreamManager()
+        streams = []
 
         async with SessionLocal() as db:
             service = StaticSourceService(db)
@@ -24,26 +28,38 @@ async def movie_streams(imdb_id: str, proxy_url: str | None = None):
                 # extract stream links from every source
                 try:
                     if proxy_url is None:
-                        stream = StremioStream(stream.url, headers=stream.headers, name="Static Sources", title=stream.title)
-                        streams.append(stream)
+                        streams.append(
+                            StremioStream(
+                                stream.url,
+                                headers=stream.headers,
+                                name="Static Sources",
+                                title=stream.title,
+                                source=SOURCE_NAME,
+                            )
+                        )
                     else:
                         query = urlencode({"url": stream.url, "headers": stream.headers})
-                        stream = StremioStream(f"{proxy_url}?{query}", name="Static Sources", title=stream.title)
-                        streams.append(stream)
+                        streams.append(
+                            StremioStream(
+                                f"{proxy_url}?{query}",
+                                name="Static Sources",
+                                title=stream.title,
+                                source=SOURCE_NAME,
+                            )
+                        )
                 except:
                     pass
 
-        # format as a stremio json
-        return streams.to_list()
+        return streams
 
     except Exception as e:
-        print(f"Exception raised in static_sources module! {e.__class__.__name__}: {e}")
+        logger.error(f"Exception raised in static_sources module! {e.__class__.__name__}: {e}")
         return []
 
 
-async def series_stream(imdb_id: str, season: int, episode: int, proxy_url: str | None = None):
+async def series_stream(imdb_id: str, season: int, episode: int, proxy_url: str | None = None) -> list[StremioStream]:
     try:
-        streams = StremioStreamManager()
+        streams = []
 
         async with SessionLocal() as db:
             service = StaticSourceService(db)
@@ -53,18 +69,30 @@ async def series_stream(imdb_id: str, season: int, episode: int, proxy_url: str 
                 # extract stream links from every source
                 try:
                     if proxy_url is None:
-                        stream = StremioStream(stream.url, headers=stream.headers, name="Static Sources", title=stream.title)
-                        streams.append(stream)
+                        streams.append(
+                            StremioStream(
+                                stream.url,
+                                headers=stream.headers,
+                                name="Static Sources",
+                                title=stream.title,
+                                source=SOURCE_NAME,
+                            )
+                        )
                     else:
                         query = urlencode({"url": stream.url, "headers": stream.headers})
-                        stream = StremioStream(f"{proxy_url}?{query}", name="Static Sources", title=stream.title)
-                        streams.append(stream)
+                        streams.append(
+                            StremioStream(
+                                f"{proxy_url}?{query}",
+                                name="Static Sources",
+                                title=stream.title,
+                                source=SOURCE_NAME,
+                            )
+                        )
                 except:
                     pass
 
-        # format as a stremio json
-        return streams.to_list()
+        return streams
 
     except Exception as e:
-        print(f"Exception raised in static_sources module! {e.__class__.__name__}: {e}")
+        logger.error(f"Exception raised in static_sources module! {e.__class__.__name__}: {e}")
         return []
