@@ -1,13 +1,13 @@
-version: '3.8'
-
 services:
   app:
     working_dir: /app
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
       - "6222:6222" 
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ../certs:/app/certs:ro
     restart: unless-stopped
-    command: uvicorn main:app --host=0.0.0.0 --port=6222
+    env_file:
+      - ../.env

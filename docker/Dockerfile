@@ -1,25 +1,51 @@
-FROM python:3.13.3-slim-bullseye
+# --- Build frontend ---
+FROM node:alpine AS css-builder
+WORKDIR /build
 
+# copy build artifacts
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY ../src ./src/
+
+RUN npm run build
+
+# --- Final image ---
+FROM ghcr.io/astral-sh/uv:python3.13-alpine AS final
+# Install the project into `/app`
 WORKDIR /app
 
-# install build tools
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    curl && \
-    rm -rf /var/lib/apt/lists/*
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
 
-# install rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
 
-# copy and install requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Omit development dependencies
+ENV UV_NO_DEV=1
 
-# copy the rest of the app
-COPY . .
+# Ensure installed tools can be executed out of the box
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
+
+# Install the project's dependencies using the lockfile and settings
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project
+
+
+COPY src/ ./src/
+COPY manage.py uv.lock pyproject.toml selected-media.json ./
+
+COPY --from=css-builder /build/src/app/website/static/css/output.css /src/app/website/static/css/output.css
+
+# remove input.css
+RUN rm -f /src/app/website/static/css/input.css
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
 
 # non root user
-RUN useradd -m appuser && chown -R appuser:appuser /app
+RUN adduser -D appuser && chown -R appuser:appuser /app
 USER appuser
+
+CMD ["uv", "run", "manage.py", "runserver"]
